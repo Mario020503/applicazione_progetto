@@ -1,3 +1,0 @@
-// Classe drink
-// Nome
-// Grado
