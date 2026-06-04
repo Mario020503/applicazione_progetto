@@ -79,28 +79,44 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               leading: Icon(Icons.home),
               title: Text('Principale'),
+<<<<<<< HEAD
               onTap: () {
+=======
+              onTap: () { 
+>>>>>>> cdb9ab15415b51189d03dde12caeab8006053f3a
                 _toHomePage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
               title: Text('Calendario'),
+<<<<<<< HEAD
               onTap: () {
+=======
+              onTap: () { 
+>>>>>>> cdb9ab15415b51189d03dde12caeab8006053f3a
                 _toCalendarPage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Imopostazioni'),
+<<<<<<< HEAD
               onTap: () {
+=======
+              onTap: () { 
+>>>>>>> cdb9ab15415b51189d03dde12caeab8006053f3a
                 _toSettingsPage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Esci'),
+<<<<<<< HEAD
               onTap: () {
+=======
+              onTap: () { 
+>>>>>>> cdb9ab15415b51189d03dde12caeab8006053f3a
                 _toLoginPage(context);
               },
             ),
@@ -131,8 +147,32 @@ class _HomePageState extends State<HomePage> {
 
     //Pop the drawer first 
     Navigator.pop(context);
-    //Then pop the HomePage
+    //Then pop the LoginPage
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
   }//_toLoginPage
+<<<<<<< HEAD
+=======
+
+  void _toHomePage(BuildContext context) async{
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the HomePage
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+  }//_toHomePage
+
+  void _toCalendarPage(BuildContext context) async{
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the CalendarPage
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => CalendarPage()));
+  }//_toCalendarPage
+
+  void _toSettingsPage(BuildContext context) async{
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the CalendarPage
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => SettingsPage()));
+  }//_toCalendarPage
+>>>>>>> cdb9ab15415b51189d03dde12caeab8006053f3a
 
 } //HomePage
