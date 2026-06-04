@@ -112,7 +112,7 @@ class _HomePageState extends State<HomePage> {
 
     //Pop the drawer first 
     Navigator.pop(context);
-    //Then pop the HomePage
+    //Then pop the LoginPage
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
   }//_toLoginPage
 
@@ -130,7 +130,7 @@ class _HomePageState extends State<HomePage> {
     
     //Pop the drawer first 
     Navigator.pop(context);
-    //Then pop the HomePage
+    //Then pop the CalendarPage
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => CalendarPage()));
   }//_toCalendarPage
 
