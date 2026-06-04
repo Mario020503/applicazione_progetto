@@ -19,6 +19,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
+    Intl.defaultLocale = 'it_IT';
     _selectedDate = DateTime.now();
     _focusedDate = DateTime.now();
   }
@@ -80,7 +81,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             );
                           });
                         },
-                        child: const Text('PROSSIMO MESE →'),
+                        child: const Text('MESE SUCCESSIVO →'),
                       ),
                     ],
                   ),
@@ -128,7 +129,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Torna indietro'),
+                    child: const Text('Torna alla pagina principale'),
                   ),
                 ],
               ),
