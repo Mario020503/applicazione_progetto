@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text('HomePage'),
+        title: Text('Principale'),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
       ),
       body: Center(
