@@ -4,7 +4,11 @@ import 'package:intl/intl.dart';
 class CalendarPage extends StatefulWidget {
   const CalendarPage({Key? key}) : super(key: key);
 
+<<<<<<< HEAD
   @override
+=======
+   @override
+>>>>>>> 3729f56d25186be77bd8deaf2673b18efcfe45d8
   State<CalendarPage> createState() => _CalendarPageState();
 }
 
@@ -19,13 +23,20 @@ class _CalendarPageState extends State<CalendarPage> {
     _focusedDate = DateTime.now();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
         title: const Text('Calendario'),
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+=======
+      backgroundColor: const color.fromRGBO(255, 255, 196, 0),
+      appBar: AppBar(
+        title: const Text('Calendario'),
+        backgroundColor: const color.fromRGBO(255, 255, 196, 0),
+>>>>>>> 3729f56d25186be77bd8deaf2673b18efcfe45d8
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -35,7 +46,11 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Column(
                 children: [
                   Text(
+<<<<<<< HEAD
                     'Mese: ${DateFormat.yMMM().format(_focusedDate)}',
+=======
+                    'Mese: ${DateFormat.yMMM('it_IT').format(_focusedDate)}',
+>>>>>>> 3729f56d25186be77bd8deaf2673b18efcfe45d8
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -96,7 +111,11 @@ class _CalendarPageState extends State<CalendarPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
+<<<<<<< HEAD
                           DateFormat.yMMMMEEEEd().format(_selectedDate),
+=======
+                          DateFormat.yMMMMEEEEd('it_IT').format(_selectedDate),
+>>>>>>> 3729f56d25186be77bd8deaf2673b18efcfe45d8
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -240,6 +259,9 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 }
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 3729f56d25186be77bd8deaf2673b18efcfe45d8
