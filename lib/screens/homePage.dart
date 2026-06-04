@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:applicazione_progetto/screens/calendarPage.dart';
 import 'package:applicazione_progetto/screens/loginPage.dart';
+import 'package:applicazione_progetto/screens/settingsPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -77,27 +79,30 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               leading: Icon(Icons.home),
               title: Text('Principale'),
-              onTap: () => _toHomePage(context);
-              //Navigator.pop(context); // Chiudi il drawer
-              
+              onTap: () { 
+                _toHomePage(context);
+              },
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
               title: Text('Calendario'),
-              onTap: () => _toCalendarPage(context),
-              //Navigator.pop(context), // Chiudi il drawer
+              onTap: () { 
+                _toCalendarPage(context);
+              },
             ),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Imopostazioni'),
-              onTap: () => _toSettingsPage(context),
-              //Navigator.pop(context), // Chiudi il drawer
+              onTap: () { 
+                _toSettingsPage(context);
+              },
             ),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Esci'),
-              onTap: () => _toLoginPage(context),
-              //Navigator.pop(context), // Chiudi il drawer
+              onTap: () { 
+                _toLoginPage(context);
+              },
             ),
           ],
         ),
@@ -117,8 +122,6 @@ class _HomePageState extends State<HomePage> {
   }//_toLoginPage
 
   void _toHomePage(BuildContext context) async{
-    //Get the instance and remove isUserLogged flag from shared preferences 
-    
     //Pop the drawer first 
     Navigator.pop(context);
     //Then pop the HomePage
@@ -126,12 +129,17 @@ class _HomePageState extends State<HomePage> {
   }//_toHomePage
 
   void _toCalendarPage(BuildContext context) async{
-    //Get the instance and remove isUserLogged flag from shared preferences 
-    
     //Pop the drawer first 
     Navigator.pop(context);
     //Then pop the CalendarPage
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => CalendarPage()));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => CalendarPage()));
+  }//_toCalendarPage
+
+  void _toSettingsPage(BuildContext context) async{
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the CalendarPage
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => SettingsPage()));
   }//_toCalendarPage
 
 } //HomePage
