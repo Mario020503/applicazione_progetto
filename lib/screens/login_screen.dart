@@ -1,29 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/schermata_iniziale.dart';
-import 'package:buzzed_buddy/screens/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/splash_screen.dart';
+import 'package:buzzed_buddy/screens/register_screen.dart';
+
+
+// LOGIN SCREEN — Schermata di accesso per utenti già registrati.
+// Viene mostrata quando:
+//   - L'utente ha un account salvato ma isUserLogged è false
+//   - L'utente ha fatto logout
+//
+// Verifica username con Provider e password con SharedPreferences.
+// La password NON vive nel Provider per motivi di sicurezza.
+
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginScreenState extends State<LoginScreen> {
 
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  // Legge la password da SharedPreferences, niente a che fare con il Provider
+  Future<String> _getPassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('password') ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text("BENTORNATO!"),
+        title: Text("Welcome back!"),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        elevation: 0,
       ),
       body: Center(
         child: Column(
@@ -38,8 +56,8 @@ class _LoginPageState extends State<LoginPage> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(),
-                  labelText: 'Nome utente',
-                  hintText: 'Inserisci il tuo nome utente',
+                  labelText: 'Username',
+                  hintText: 'Enter your username',
                 ),
               ),
             ),
@@ -57,17 +75,18 @@ class _LoginPageState extends State<LoginPage> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(),
                   labelText: 'Password',
-                  hintText: 'Inserisci la tua password',
+                  hintText: 'Enter your password',
                 ),
               ),
             ),
 
             SizedBox(height: 30),
 
+            // verifica le credenziali e se tutto apposto va a SplashScreen
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                foregroundColor: Colors.yellow,
+                foregroundColor: Color.fromARGB(255, 255, 196, 0),
                 minimumSize: Size(250, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -75,37 +94,39 @@ class _LoginPageState extends State<LoginPage> {
               ),
               onPressed: () async {
                 final userProvider = Provider.of<UserProvider>(context, listen: false);
+                final savedPassword = await _getPassword();
 
                 if (usernameController.text == userProvider.username &&
-                    passwordController.text == (await _getPassword())) {
+                    passwordController.text == savedPassword) {
                   await userProvider.login();
 
                   if (!mounted) return;
 
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => SchermataIniziale()),
+                    MaterialPageRoute(builder: (_) => SplashScreen()),
                   );
                 } else {
                   ScaffoldMessenger.of(context)
                     ..removeCurrentSnackBar()
                     ..showSnackBar(
-                      SnackBar(content: Text('Nome utente o password errati')),
+                      SnackBar(content: Text('Incorrect username or password')),
                     );
                 }
               },
               child: Text(
-                'ACCEDI',
+                'LOG IN',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
 
             SizedBox(height: 15),
 
+            // SIGN UP alla prima apertura o da nuovo dispositivo 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                foregroundColor: Colors.yellow,
+                foregroundColor: Color.fromARGB(255, 255, 196, 0),
                 minimumSize: Size(250, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -114,11 +135,11 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => RegisterPage()),
+                  MaterialPageRoute(builder: (_) => RegisterScreen()),
                 );
               },
               child: Text(
-                'REGISTRATI',
+                'SIGN UP',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -127,12 +148,5 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
-  }
-
-  // La password rimane su SharedPreferences per sicurezza
-  // e non viene mai esposta nel Provider
-  Future<String> _getPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('password') ?? '';
   }
 }

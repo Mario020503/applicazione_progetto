@@ -1,58 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/login_page.dart';
+import 'package:buzzed_buddy/screens/login_screen.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+
+// REGISTER SCREEN — Schermata di registrazione, eseguita una sola volta.
+// Raccoglie i dati minimi necessari per il funzionamento dell'app:
+//   - Nome reale, usato nel messaggio di emergenza
+//   - Username, usato nel saluto e nel login
+//   - Password, login
+//   - Peso in kg 
+//   - Sesso M/F
+// Chiede anche il permesso GPS durante la registrazione,
+// quando l'utente è sobrio e può dare un consenso informato.
+
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterScreenState extends State<RegisterScreen> {
 
-  TextEditingController nomeController = TextEditingController();
-  TextEditingController cognomeController = TextEditingController();
-  TextEditingController usernameController = TextEditingController();
-  TextEditingController etaController = TextEditingController();
-  TextEditingController sessoController = TextEditingController();
-  TextEditingController altezzaController = TextEditingController();
-  TextEditingController pesoController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController nomeRealeController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController pesoController = TextEditingController();
+  final TextEditingController sessoController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
   bool termsAccepted = false;
 
-  void _mostraCondizioni(BuildContext context) {
+  // Mostra il dialog delle condizioni di servizio
+  void _showTerms(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Condizioni di servizio'),
+          title: Text('Terms of Service'),
           content: SingleChildScrollView(
             child: Text(
-              'Leggendo e accettando queste condizioni, accetti di:\n\n'
-              '1. Fornire informazioni personali accurate\n'
-              '2. Utilizzare l\'app senza sostituire il giudizio medico\n'
-              '3. Non condividere i tuoi dati con terzi\n'
-              '4. Proteggere la tua password\n'
-              '5. Accettare la privacy policy\n\n'
-              'Per maggiori dettagli, contattaci alla email buzzedbuddy@gmail.com.',
+              'By accepting these terms, you agree to:\n\n'
+              '1. Provide accurate personal information\n'
+              '2. Use this app without replacing medical advice\n'
+              '3. Not share your data with third parties\n'
+              '4. Keep your password secure\n'
+              '5. Open the app BEFORE you start drinking for accurate BAC tracking\n'
+              '6. Allow location access to be used in case of emergency\n\n'
+              'For more information, contact us at buzzedbuddy@gmail.com.',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Rifiuto'),
+              child: Text('Decline'),
             ),
             TextButton(
               onPressed: () {
                 setState(() => termsAccepted = true);
                 Navigator.pop(context);
               },
-              child: Text('Accetto'),
+              child: Text('Accept'),
             ),
           ],
         );
@@ -60,13 +71,24 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  // Richiede il permesso GPS, chiamato dopo la registrazione,
+  // quando l'utente è sobrio e può dare un consenso informato. 
+  // l'ho messo qua, fin da subito, non chiediamo agli sbronzi di accettare roba
+  Future<void> _requestLocationPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      await Geolocator.requestPermission();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text("REGISTRAZIONE"),
+        title: Text("Create your account"),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        elevation: 0,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -74,23 +96,20 @@ class _RegisterPageState extends State<RegisterPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
 
-              _campo(nomeController, 'Nome', 'Inserisci il tuo nome'),
-              _campo(cognomeController, 'Cognome', 'Inserisci il tuo cognome'),
-              _campo(usernameController, 'Nome utente', 'Scegli un nome utente'),
-              _campo(etaController, 'Età', 'Inserisci la tua età', numbersOnly: true),
-              _campo(sessoController, 'Sesso', 'M/F'),
-              _campo(altezzaController, 'Altezza (cm)', 'Inserisci la tua altezza', numbersOnly: true),
-              _campo(pesoController, 'Peso (kg)', 'Inserisci il tuo peso', numbersOnly: true),
-              _campo(emailController, 'Email', 'Inserisci la tua email'),
-              _campo(passwordController, 'Password', 'Inserisci la password', obscure: true),
-              _campo(confirmPasswordController, 'Conferma Password', 'Conferma la password', obscure: true),
+              _field(nomeRealeController, 'Full name', 'Enter your real name'),
+              _field(usernameController, 'Username', 'Choose a username'),
+              _field(pesoController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
+              _field(sessoController, 'Sex', 'M or F'),
+              _field(passwordController, 'Password', 'Choose a password', obscure: true),
+              _field(confirmPasswordController, 'Confirm password', 'Repeat your password', obscure: true),
 
+              // Checkbox condizioni di servizio
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _mostraCondizioni(context),
+                      onTap: () => _showTerms(context),
                       child: Container(
                         width: 30,
                         height: 30,
@@ -111,9 +130,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     SizedBox(width: 10),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => _mostraCondizioni(context),
+                        onTap: () => _showTerms(context),
                         child: Text(
-                          'Accetto le condizioni di servizio',
+                          'I accept the Terms of Service',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -125,69 +144,82 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
 
+              // Pulsante SIGN UP, valida, salva, chiede GPS, naviga a LoginScreen
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
-                  foregroundColor: Colors.yellow,
+                  foregroundColor: Color.fromARGB(255, 255, 196, 0),
                   minimumSize: Size(250, 55),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 onPressed: () async {
-                  if (nomeController.text.isEmpty ||
-                      cognomeController.text.isEmpty ||
+
+                  // Validazione campi vuoti
+                  if (nomeRealeController.text.isEmpty ||
                       usernameController.text.isEmpty ||
-                      etaController.text.isEmpty ||
-                      sessoController.text.isEmpty ||
-                      altezzaController.text.isEmpty ||
                       pesoController.text.isEmpty ||
-                      emailController.text.isEmpty ||
+                      sessoController.text.isEmpty ||
                       passwordController.text.isEmpty ||
                       confirmPasswordController.text.isEmpty) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('Compila tutti i campi')));
+                      ..showSnackBar(SnackBar(content: Text('Please fill in all fields')));
                     return;
                   }
 
+                  // Validazione password uguali
                   if (passwordController.text != confirmPasswordController.text) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('Le password non corrispondono')));
+                      ..showSnackBar(SnackBar(content: Text('Passwords do not match')));
                     return;
                   }
 
+                  // Validazione sesso
+                  final sesso = sessoController.text.toUpperCase();
+                  if (sesso != 'M' && sesso != 'F') {
+                    ScaffoldMessenger.of(context)
+                      ..removeCurrentSnackBar()
+                      ..showSnackBar(SnackBar(content: Text('Sex must be M or F')));
+                    return;
+                  }
+
+                  // Validazione condizioni
                   if (!termsAccepted) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('Devi accettare le condizioni per registrarti')));
+                      ..showSnackBar(SnackBar(content: Text('You must accept the Terms of Service')));
                     return;
                   }
 
+                  // Salva i dati nel Provider e su SharedPreferences
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
-                  await userProvider.salvaUtente(
+                  await userProvider.saveUser(
                     username: usernameController.text,
                     password: passwordController.text,
-                    sesso: sessoController.text,
+                    nomeReale: nomeRealeController.text,
+                    sesso: sesso,
                     peso: double.parse(pesoController.text),
-                    altezza: double.parse(altezzaController.text),
-                    eta: int.parse(etaController.text),
                   );
+
+                  // Richiede permesso GPS mentre l'utente è ancora sobrio
+                  await _requestLocationPermission();
 
                   if (!mounted) return;
 
                   ScaffoldMessenger.of(context)
                     ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text('Registrazione completata! Accedi ora.')));
+                    ..showSnackBar(SnackBar(content: Text('Account created! Please log in.')));
 
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => LoginPage()),
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
                   );
                 },
                 child: Text(
-                  'REGISTRATI',
+                  'SIGN UP',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -200,7 +232,8 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _campo(TextEditingController controller, String label, String hint,
+  // Widget helper per i campi di testo, evita di scrivere 800 volte la stessa roba
+  Widget _field(TextEditingController controller, String label, String hint,
       {bool obscure = false, bool numbersOnly = false}) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -209,8 +242,8 @@ class _RegisterPageState extends State<RegisterPage> {
         obscureText: obscure,
         keyboardType: numbersOnly ? TextInputType.number : TextInputType.text,
         inputFormatters: obscure
-        ? [FilteringTextInputFormatter.deny(RegExp(r'\s'))]
-        : null,
+            ? [FilteringTextInputFormatter.deny(RegExp(r'\s'))]
+            : null,
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
