@@ -77,27 +77,27 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               leading: Icon(Icons.home),
               title: Text('Principale'),
-              onTap: () => _tohomePage(context);
-              Navigator.pop(context); // Chiudi il drawer
+              onTap: () => _toHomePage(context);
+              //Navigator.pop(context); // Chiudi il drawer
               
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
               title: Text('Calendario'),
               onTap: () => _toCalendarPage(context),
-              Navigator.pop(context), // Chiudi il drawer
+              //Navigator.pop(context), // Chiudi il drawer
             ),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Imopostazioni'),
               onTap: () => _toSettingsPage(context),
-              Navigator.pop(context), // Chiudi il drawer
+              //Navigator.pop(context), // Chiudi il drawer
             ),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Esci'),
               onTap: () => _toLoginPage(context),
-              Navigator.pop(context), // Chiudi il drawer
+              //Navigator.pop(context), // Chiudi il drawer
             ),
           ],
         ),
@@ -114,6 +114,24 @@ class _HomePageState extends State<HomePage> {
     Navigator.pop(context);
     //Then pop the HomePage
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
+  }//_toLoginPage
+
+  void _toHomePage(BuildContext context) async{
+    //Get the instance and remove isUserLogged flag from shared preferences 
+    
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the HomePage
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+  }//_toHomePage
+
+  void _toCalendarPage(BuildContext context) async{
+    //Get the instance and remove isUserLogged flag from shared preferences 
+    
+    //Pop the drawer first 
+    Navigator.pop(context);
+    //Then pop the HomePage
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => CalendarPage()));
   }//_toCalendarPage
 
 } //HomePage
