@@ -72,30 +72,30 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              child: Text('login_flow'),
+              child: Text('Impostazioni e attività'),
             ),
             ListTile(
               leading: Icon(Icons.home),
-              title: Text('Home'),
+              title: Text('Principale'),
               onTap: () => _tohomePage(context);
               Navigator.pop(context); // Chiudi il drawer
               
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
-              title: Text('Calendar'),
+              title: Text('Calendario'),
               onTap: () => _toCalendarPage(context),
               Navigator.pop(context), // Chiudi il drawer
             ),
             ListTile(
               leading: Icon(Icons.settings),
-              title: Text('Settings'),
+              title: Text('Imopostazioni'),
               onTap: () => _toSettingsPage(context),
               Navigator.pop(context), // Chiudi il drawer
             ),
             ListTile(
               leading: Icon(Icons.logout),
-              title: Text('Logout'),
+              title: Text('Esci'),
               onTap: () => _toLoginPage(context),
               Navigator.pop(context), // Chiudi il drawer
             ),
