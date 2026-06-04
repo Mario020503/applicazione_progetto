@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   // Aggiungi la logica per il pulsante "Iniziamo"
+                  
                   ScaffoldMessenger.of(context)
                     ..removeCurrentSnackBar()
                     ..showSnackBar(SnackBar(content: Text('Benvenuto nell\'app!')));
