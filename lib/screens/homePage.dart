@@ -75,9 +75,29 @@ class _HomePageState extends State<HomePage> {
               child: Text('login_flow'),
             ),
             ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Home'),
+              onTap: () => _tohomePage(context);
+              Navigator.pop(context); // Chiudi il drawer
+              
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_today),
+              title: Text('Calendar'),
+              onTap: () => _toCalendarPage(context),
+              Navigator.pop(context), // Chiudi il drawer
+            ),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Settings'),
+              onTap: () => _toSettingsPage(context),
+              Navigator.pop(context), // Chiudi il drawer
+            ),
+            ListTile(
               leading: Icon(Icons.logout),
               title: Text('Logout'),
               onTap: () => _toLoginPage(context),
+              Navigator.pop(context), // Chiudi il drawer
             ),
           ],
         ),
