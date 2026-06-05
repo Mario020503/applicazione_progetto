@@ -333,6 +333,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     return;
                   }
 
+                  // Validazione età
+                  if (etaController.text.isNotEmpty) {
+                    int? eta = int.tryParse(etaController.text);
+                    if (eta == null || eta < 18) {
+                      ScaffoldMessenger.of(context)
+                        ..removeCurrentSnackBar()
+                        ..showSnackBar(SnackBar(content: Text('Puoi registrarti nell\'applicazione anche se sei minorenne!\n Ma ricorda di bere responsabilmente e di rispettare le leggi locali riguardanti il consumo di alcolici.')));
+                      return;
+                    }
+                  }
+                  
+
                   final currentContext = context;
                   // Registrazione avvenuta con successo - Salva credenziali
                   final sharedPreferences = await SharedPreferences.getInstance();

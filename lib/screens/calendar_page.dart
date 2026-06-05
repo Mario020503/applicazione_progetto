@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:applicazione_progetto/screens/home_page.dart';
+import 'package:applicazione_progetto/screens/register_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 class CalendarPage extends StatefulWidget {

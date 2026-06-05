@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text('Principale'),
+        title: Text('Home'),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
       ),
       body: Center(
@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Benvenuto $loggedUsername',
+              'Welcome $loggedUsername',
               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 50),
@@ -55,10 +55,10 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   // Aggiungi la logica per il pulsante "Iniziamo"
-                  // Vai alla pagina drink-serata
+                  // Va alla pagina drink-serata
                   ScaffoldMessenger.of(context)
                     ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text('Benvenuto nell\'app!')));
+                    ..showSnackBar(SnackBar(content: Text('Welcome in BuzzedBuddy !')));
                 },
                 child: Text(
                   'Iniziamo',
@@ -74,32 +74,32 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              child: Text('Impostazioni e attività'),
+              child: Text('Settings and activities'),
             ),
             ListTile(
               leading: Icon(Icons.home),
-              title: Text('Principale'),
+              title: Text('Home'),
               onTap: () {
                 _toHomePage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
-              title: Text('Calendario'),
+              title: Text('Calendar'),
               onTap: () {
                 _toCalendarPage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.settings),
-              title: Text('Impostazioni'),
+              title: Text('Settings'),
               onTap: () {
                 _toSettingsPage(context);
               },
             ),
             ListTile(
               leading: Icon(Icons.logout),
-              title: Text('Esci'),
+              title: Text('Logout'),
               onTap: () {
                 _toLoginPage(context);
               },
