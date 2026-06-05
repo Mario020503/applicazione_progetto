@@ -1,76 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/schermata_iniziale.dart';
-import 'package:buzzed_buddy/screens/login_page.dart';
+import 'package:applicazione_progetto/screens/homePage.dart';
+import 'package:applicazione_progetto/screens/loginPage.dart';
+import 'package:applicazione_progetto/screens/calendarPage.dart';
+import 'package:applicazione_progetto/screens/settingsPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => UserProvider(),
-      child: const MyApp(),
-    ),
-  );
-}
+  runApp(MyApp());
+} //main
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+  const MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BuzzedBuddy',
-      debugShowCheckedModeBanner: false,
-      home: const AppLoader(),
+      //Now the home becomes a FutureBuilder: we need to wait for the instance of SharedPreferences
+      home: FutureBuilder(
+        future: SharedPreferences.getInstance(),
+        builder: (context, snapshot) {
+          //If the instance is ready...
+          if (snapshot.hasData) {
+            //...get the instance
+            final sharedPreferences = snapshot.data!;
+            //Check if the flag isUserLogged exist...
+            if (sharedPreferences.getBool('isUserLogged') != null) {
+              //..if so, go directly to HomePage
+              return HomePage();
+            } //if
+            else {
+              //...otherwise go to LoginPage
+              return LoginPage();
+            } //else
+          } //if
+          else {
+            //While the instance of SharedPreferences is loading, just show a CircularProgress indicator in the Center
+            return Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } //else
+        },
+      ),
     );
-  }
-}
-
-// Schermata di caricamento iniziale — legge i dati salvati e decide dove andare
-class AppLoader extends StatefulWidget {
-  const AppLoader({super.key});
-
-  @override
-  State<AppLoader> createState() => _AppLoaderState();
-}
-
-class _AppLoaderState extends State<AppLoader> {
-
-  @override
-  void initState() {
-    super.initState();
-    _carica();
-  }
-
-  Future<void> _carica() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.caricaDaSharedPreferences();
-
-    if (!mounted) return;
-
-    if (userProvider.isUserLogged && userProvider.username != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => SchermataIniziale()),
-      );
-    } else if (userProvider.username != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => LoginPage()),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => SchermataIniziale()),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 196, 0),
-      body: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
+  } //build
+} //MyApp

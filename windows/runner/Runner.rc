@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "buzzed_buddy" "\0"
+            VALUE "FileDescription", "applicazione_progetto" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "buzzed_buddy" "\0"
+            VALUE "InternalName", "applicazione_progetto" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "buzzed_buddy.exe" "\0"
-            VALUE "ProductName", "buzzed_buddy" "\0"
+            VALUE "OriginalFilename", "applicazione_progetto.exe" "\0"
+            VALUE "ProductName", "applicazione_progetto" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
