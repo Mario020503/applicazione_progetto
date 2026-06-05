@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:applicazione_progetto/screens/home_page.dart';
 import 'package:applicazione_progetto/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-void main() {
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Inizializza i dati per la lingua italiana in modo asincrono
+  await initializeDateFormatting('it_IT', null);
+  // Imposta il locale predefinito per tutta l'applicazione
+  Intl.defaultLocale = 'it_IT';
+  
   runApp(MyApp());
 } //main
 

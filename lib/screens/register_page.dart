@@ -334,16 +334,32 @@ class _RegisterPageState extends State<RegisterPage> {
                   }
 
                   // Validazione età
-                  if (etaController.text.isNotEmpty) {
-                    int? eta = int.tryParse(etaController.text);
-                    if (eta == null || eta < 18) {
-                      ScaffoldMessenger.of(context)
-                        ..removeCurrentSnackBar()
-                        ..showSnackBar(SnackBar(content: Text('Puoi registrarti nell\'applicazione anche se sei minorenne!\n Ma ricorda di bere responsabilmente e di rispettare le leggi locali riguardanti il consumo di alcolici.')));
-                      return;
-                    }
-                  }
-                  
+                  showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Condizioni di servizio'),
+                              content: SingleChildScrollView(
+                                child: Text(
+                                  'Anche se sei minorenne puoi lo stesso utilizzare l\'app! \n ma ricorda che è importante bere responsabilmente e seguire sempre le linee guida per un consumo sicuro.',
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    // Accetta le condizioni
+                                    setState(() {
+                                      termsAccepted = true;
+                                    }
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Ne sono consapevole '),
+                                ),
+                              ]);
+                          },
+                  );
+                                           
 
                   final currentContext = context;
                   // Registrazione avvenuta con successo - Salva credenziali
