@@ -1,6 +1,6 @@
 {
-    "name": "buzzed_buddy",
-    "short_name": "buzzed_buddy",
+    "name": "applicazione_progetto",
+    "short_name": "applicazione_progetto",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
