@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:applicazione_progetto/screens/loginPage.dart';
+import 'package:applicazione_progetto/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
   @override
-  _RegisterPageState createState() => _RegisterPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -331,18 +333,17 @@ class _RegisterPageState extends State<RegisterPage> {
                     return;
                   }
 
+                  final currentContext = context;
                   // Registrazione avvenuta con successo - Salva credenziali
                   final sharedPreferences = await SharedPreferences.getInstance();
                   await sharedPreferences.setString('username', nomeUtenteController.text);
                   await sharedPreferences.setString('password', passwordController.text);
                   
-                  ScaffoldMessenger.of(context)
-                    ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text('Registrazione completata! Accedi ora.')));
+                  if (!currentContext.mounted) return;
 
                   // Torna alla login
                   Navigator.pushReplacement(
-                      context, MaterialPageRoute(builder: (_) => LoginPage()));
+                      currentContext, MaterialPageRoute(builder: (_) => LoginPage()));
                 },
                 child: Text('Registrati'),
               ),

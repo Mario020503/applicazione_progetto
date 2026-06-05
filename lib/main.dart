@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:applicazione_progetto/screens/homePage.dart';
-import 'package:applicazione_progetto/screens/loginPage.dart';
-import 'package:applicazione_progetto/screens/calendarPage.dart';
-import 'package:applicazione_progetto/screens/settingsPage.dart';
+import 'package:applicazione_progetto/screens/home_page.dart';
+import 'package:applicazione_progetto/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -10,7 +8,7 @@ void main() {
 } //main
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

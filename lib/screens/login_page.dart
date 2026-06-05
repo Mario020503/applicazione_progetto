@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'package:applicazione_progetto/screens/homePage.dart';
-import 'package:applicazione_progetto/screens/registerPage.dart';
+import 'package:applicazione_progetto/screens/home_page.dart';
+import 'package:applicazione_progetto/screens/register_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }//LoginPage
 
 class _LoginPageState extends State<LoginPage> {
@@ -63,6 +65,7 @@ class _LoginPageState extends State<LoginPage> {
                   backgroundColor: Color.fromARGB(255, 255, 196, 0),
                 ),
                 onPressed: () async{
+                  final currentContext = context;
                   //Get the instance of SharedPreferences
                   final sharedPreferences = await SharedPreferences.getInstance();
                   //Get saved username and password
@@ -76,13 +79,16 @@ class _LoginPageState extends State<LoginPage> {
                     //Save the logged in username
                     await sharedPreferences.setString('loggedUsername', userController.text);
 
+                    if (!currentContext.mounted) return;
+
                     //Finally, navigate to HomePage
                     Navigator.pushReplacement(
-                        context, MaterialPageRoute(builder: (_) => HomePage()));
+                        currentContext, MaterialPageRoute(builder: (_) => HomePage()));
                   }//if
                   else{
+                    if (!currentContext.mounted) return;
                     //If the credentials are not correct, say it!
-                    ScaffoldMessenger.of(context)
+                    ScaffoldMessenger.of(currentContext)
                     ..removeCurrentSnackBar()
                     ..showSnackBar(SnackBar(content: Text('Nome utente o password errati')));
                   }//else
