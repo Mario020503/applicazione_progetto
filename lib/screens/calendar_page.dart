@@ -56,7 +56,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             );
                           });
                         },
-                        child: const Text('← MESE PRECEDENTE'),
+                        child: const Text('← PREVIOUS MONTH'),
                       ),
                       ElevatedButton(
                         onPressed: () {
@@ -67,7 +67,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             );
                           });
                         },
-                        child: const Text('MESE SUCCESSIVO →'),
+                        child: const Text('NEXT MONTH →'),
                       ),
                     ],
                   ),
@@ -90,7 +90,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     child: Column(
                       children: [
                         const Text(
-                          'Data selezionata:',
+                          'Date selected:',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -111,7 +111,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Torna alla pagina principale'),
+                    child: const Text('Back to Home'),
                   ),
                 ],
               ),
@@ -158,13 +158,13 @@ class _CalendarPageState extends State<CalendarPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              'Lun',
-              'Mar',
-              'Mer',
-              'Gio',
-              'Ven',
-              'Sab',
-              'Dom'
+              'Mon',
+              'Tue',
+              'Wed',
+              'Thu',
+              'Fri',
+              'Sat',
+              'Sun'
             ]
                 .map(
                   (day) => Center(
