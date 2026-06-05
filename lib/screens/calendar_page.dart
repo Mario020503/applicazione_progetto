@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:applicazione_progetto/screens/home_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:intl/intl.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -38,11 +37,7 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Column(
                 children: [
                   Text(
-<<<<<<< HEAD:lib/screens/calendar_page.dart
                     'Mese: ${DateFormat.yMMM('it_IT').format(_focusedDate)}',
-=======
-                    'Mese: ${DateFormat.yMMM().format(_focusedDate)}',
->>>>>>> fce3039ae41ecfa425ff795f97f80015239e2d07:lib/screens/calendarPage.dart
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -103,11 +98,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-<<<<<<< HEAD:lib/screens/calendar_page.dart
                           DateFormat.yMMMMEEEEd('it_IT').format(_selectedDate),
-=======
-                          DateFormat.yMMMMEEEEd().format(_selectedDate),
->>>>>>> fce3039ae41ecfa425ff795f97f80015239e2d07:lib/screens/calendarPage.dart
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
