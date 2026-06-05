@@ -244,7 +244,3 @@ class _CalendarPageState extends State<CalendarPage> {
 }
 
 
-<<<<<<< HEAD:lib/screens/calendar_page.dart
-=======
-
->>>>>>> fce3039ae41ecfa425ff795f97f80015239e2d07:lib/screens/calendarPage.dart
