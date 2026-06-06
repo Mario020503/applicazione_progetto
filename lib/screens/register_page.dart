@@ -10,13 +10,13 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  TextEditingController nomeController = TextEditingController();
-  TextEditingController cognomeController = TextEditingController();
-  TextEditingController nomeUtenteController = TextEditingController();
-  TextEditingController etaController = TextEditingController();
-  TextEditingController sessoController = TextEditingController();
-  TextEditingController altezzaController = TextEditingController();
-  TextEditingController pesoController = TextEditingController();
+  TextEditingController nameController = TextEditingController();
+  TextEditingController surnameController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController ageController = TextEditingController();
+  TextEditingController genderController = TextEditingController();
+  TextEditingController heightController = TextEditingController();
+  TextEditingController weightController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
@@ -27,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text("Registrazione"),
+        title: Text("Registration"),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
       ),
       body: Center(
@@ -39,65 +39,65 @@ class _RegisterPageState extends State<RegisterPage> {
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: nomeController,
+                controller: nameController,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Nome',
-                    hintText: 'Inserisci il tuo nome'),
+                    labelText: 'Name',
+                    hintText: 'Enter your name'),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: cognomeController,
+                controller: surnameController,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Cognome',
-                    hintText: 'Inserisci il tuo cognome'),
+                    labelText: 'Surname',
+                    hintText: 'Enter your surname'),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: nomeUtenteController,
+                controller: usernameController,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Nome utente',
-                    hintText: 'Inserisci il tuo nome utente'),
+                    labelText: 'Username',
+                    hintText: 'Enter your username'),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: etaController,
+                controller: ageController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Età',
-                    hintText: 'Inserisci la tua età'),
+                    labelText: 'Age',
+                    hintText: 'Enter your age'),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: sessoController,
+                controller: genderController,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Sesso',
+                    labelText: 'Gender',
                     hintText: 'M/F'),
               ),
             ),
@@ -105,28 +105,28 @@ class _RegisterPageState extends State<RegisterPage> {
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: altezzaController,
+                controller: heightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Altezza (cm)',
-                    hintText: 'Inserisci la tua altezza'),
+                    labelText: 'Height (cm)',
+                    hintText: 'Enter your height'),
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(
                   left: 15.0, right: 15.0, top: 15, bottom: 15),
               child: TextField(
-                controller: pesoController,
+                controller: weightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Peso (kg)',
-                    hintText: 'Inserisci il tuo peso'),
+                    labelText: 'Weight (kg)',
+                    hintText: 'Enter your weight'),
               ),
             ),
             Padding(
@@ -139,7 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
                     labelText: 'Email',
-                    hintText: 'Inserisci la tua email'),
+                    hintText: 'Enter your email'),
               ),
             ),
             Padding(
@@ -153,7 +153,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
                     labelText: 'Password',
-                    hintText: 'Inserisci la password'),
+                    hintText: 'Enter your password'),
               ),
             ),
             Padding(
@@ -166,8 +166,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(),
-                    labelText: 'Conferma Password',
-                    hintText: 'Conferma la password'),
+                    labelText: 'Confirm Password',
+                    hintText: 'Confirm your password'),
               ),
             ),
             Padding(
@@ -180,16 +180,16 @@ class _RegisterPageState extends State<RegisterPage> {
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
-                            title: Text('Condizioni di servizio'),
+                            title: Text('Service Terms'),
                             content: SingleChildScrollView(
                               child: Text(
-                                'Leggendo e accettando queste condizioni, accetti di:\n\n'
-                                '1. Fornire informazioni personali accurate\n'
-                                '2. Utilizzare l\'app senza sostituire il giudizio medico\n'
-                                '3. Non condividere i tuoi dati con terzi\n'
-                                '4. Proteggere la tua password\n'
-                                '5. Accettare la privacy policy\n\n'
-                                'Per maggiori dettagli, contattaci alla email buzzedbuddy@gmail.com.',
+                                'By reading and accepting these terms, you agree to:\n\n'
+                                '1. Provide accurate personal information\n'
+                                '2. Use the app without replacing medical judgment\n'
+                                '3. Not share your data with third parties\n'
+                                '4. Protect your password\n'
+                                '5. Accept the privacy policy\n\n'
+                                'For more details, contact us at buzzedbuddy@gmail.com.',
                               ),
                             ),
                             actions: [
@@ -200,7 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Navigator.pushReplacement(
                                       context, MaterialPageRoute(builder: (_) => LoginPage()));
                                 },
-                                child: Text('Rifiuto'),
+                                child: Text('Reject'),
                               ),
                               TextButton(
                                 onPressed: () {
@@ -210,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   });
                                   Navigator.pop(context);
                                 },
-                                child: Text('Accetto'),
+                                child: Text('Accept'),
                               ),
                             ],
                           );
@@ -242,16 +242,16 @@ class _RegisterPageState extends State<RegisterPage> {
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Condizioni di servizio'),
+                              title: Text('Service Terms'),
                               content: SingleChildScrollView(
                                 child: Text(
-                                  'Leggendo e accettando queste condizioni, accetti di:\n\n'
-                                  '1. Fornire informazioni personali accurate\n'
-                                  '2. Utilizzare l\'app senza sostituire il giudizio medico\n'
-                                  '3. Non condividere i tuoi dati con terzi\n'
-                                  '4. Proteggere la tua password\n'
-                                  '5. Accettare la privacy policy\n\n'
-                                  'Per maggiori dettagli, contattaci alla email buzzedbuddy@gmail.com.',
+                                  'By reading and accepting these terms, you agree to:\n\n'
+                                  '1. Provide accurate personal information\n'
+                                  '2. Use the app without replacing medical judgment\n'
+                                  '3. Not share your data with third parties\n'
+                                  '4. Protect your password\n'
+                                  '5. Accept the privacy policy\n\n'
+                                  'For more details, contact us at buzzedbuddy@gmail.com.',
                                 ),
                               ),
                               actions: [
@@ -262,7 +262,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     Navigator.pushReplacement(
                                         context, MaterialPageRoute(builder: (_) => LoginPage()));
                                   },
-                                  child: Text('Rifiuto'),
+                                  child: Text('Reject'),
                                 ),
                                 TextButton(
                                   onPressed: () {
@@ -272,7 +272,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     });
                                     Navigator.pop(context);
                                   },
-                                  child: Text('Accetto'),
+                                  child: Text('Accept'),
                                 ),
                               ],
                             );
@@ -280,7 +280,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         );
                       },
                       child: Text(
-                        'Accetto le condizioni di servizio',
+                        'Accept the terms and conditions',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -301,13 +301,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 onPressed: () async {
                   // Validazione campi vuoti
-                  if (nomeController.text.isEmpty ||
-                      cognomeController.text.isEmpty ||
-                      nomeUtenteController.text.isEmpty ||
-                      etaController.text.isEmpty ||
-                      sessoController.text.isEmpty ||
-                      altezzaController.text.isEmpty ||
-                      pesoController.text.isEmpty ||
+                  if (nameController.text.isEmpty ||
+                      surnameController.text.isEmpty ||
+                      usernameController.text.isEmpty ||
+                      ageController.text.isEmpty ||
+                      genderController.text.isEmpty ||
+                      heightController.text.isEmpty ||
+                      weightController.text.isEmpty ||
                       emailController.text.isEmpty ||
                       passwordController.text.isEmpty ||
                       confirmPasswordController.text.isEmpty) {
@@ -334,39 +334,48 @@ class _RegisterPageState extends State<RegisterPage> {
                   }
 
                   // Validazione età
-                  showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text('Condizioni di servizio'),
-                              content: SingleChildScrollView(
-                                child: Text(
-                                  'Anche se sei minorenne puoi lo stesso utilizzare l\'app! \n ma ricorda che è importante bere responsabilmente e seguire sempre le linee guida per un consumo sicuro.',
+                  if(int.parse(ageController.text) < 18){
+                    showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Service Terms'),
+                                content: SingleChildScrollView(
+                                  child: Text(
+                                    'Anche se sei minorenne puoi lo stesso utilizzare l\'app! \n ma ricorda che è importante bere responsabilmente e seguire sempre le linee guida per un consumo sicuro.',
+                                  ),
                                 ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    // Accetta le condizioni
-                                    setState(() {
-                                      termsAccepted = true;
-                                    }
-                                    );
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text('Ne sono consapevole '),
-                                ),
-                              ]);
-                          },
-                  );
-                                           
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      // Accetta le condizioni
+                                      setState(() {
+                                        termsAccepted = true;
+                                      }
+                                      );
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text('Ne sono consapevole '),
+                                  ),
+                                ]);
+                            },
+                    );
+                  }                         
 
                   final currentContext = context;
                   // Registrazione avvenuta con successo - Salva credenziali
                   final sharedPreferences = await SharedPreferences.getInstance();
-                  await sharedPreferences.setString('username', nomeUtenteController.text);
+                  await sharedPreferences.setString('username', usernameController.text);
                   await sharedPreferences.setString('password', passwordController.text);
-                  
+                  await sharedPreferences.setString('name', nameController.text);
+                  await sharedPreferences.setString('surname', surnameController.text);
+                  await sharedPreferences.setString('age', ageController.text);
+                  await sharedPreferences.setString('gender', genderController.text);
+                  await sharedPreferences.setString('height', heightController.text);
+                  await sharedPreferences.setString('weight', weightController.text);
+                  await sharedPreferences.setString('email', emailController.text);
+                  await sharedPreferences.setString('password', passwordController.text);
+                 
                   if (!currentContext.mounted) return;
 
                   // Torna alla login
