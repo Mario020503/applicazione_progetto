@@ -9,13 +9,13 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   
   // Controller per tutti i campi modificabili
-  final TextEditingController nomeController = TextEditingController();
-  final TextEditingController cognomeController = TextEditingController();
-  final TextEditingController nomeUtenteController = TextEditingController();
-  final TextEditingController etaController = TextEditingController();
-  final TextEditingController sessoController = TextEditingController();
-  final TextEditingController altezzaController = TextEditingController();
-  final TextEditingController pesoController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController surnameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
+  final TextEditingController genderController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   
   bool _isLoading = true;
@@ -30,14 +30,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadUserData() async {
     final sharedPreferences = await SharedPreferences.getInstance();
     setState(() {
-      // Recupera i dati (se non esistono, lascia il campo vuoto)
-      nomeController.text = sharedPreferences.getString('nome') ?? '';
-      cognomeController.text = sharedPreferences.getString('cognome') ?? '';
-      nomeUtenteController.text = sharedPreferences.getString('username') ?? '';
-      etaController.text = sharedPreferences.getString('eta') ?? '';
-      sessoController.text = sharedPreferences.getString('sesso') ?? '';
-      altezzaController.text = sharedPreferences.getString('altezza') ?? '';
-      pesoController.text = sharedPreferences.getString('peso') ?? '';
+      // Recupera i dati
+      nameController.text = sharedPreferences.getString('name') ?? '';
+      surnameController.text = sharedPreferences.getString('surname') ?? '';
+      usernameController.text = sharedPreferences.getString('username') ?? '';
+      ageController.text = sharedPreferences.getString('age') ?? '';
+      genderController.text = sharedPreferences.getString('gender') ?? '';
+      heightController.text = sharedPreferences.getString('height') ?? '';
+      weightController.text = sharedPreferences.getString('weight') ?? '';
       emailController.text = sharedPreferences.getString('email') ?? '';
       _isLoading = false;
     });
@@ -46,29 +46,29 @@ class _SettingsPageState extends State<SettingsPage> {
   // Metodo per salvare i dati modificati
   Future<void> _saveUserData() async {
     // Validazione campi vuoti (stessa logica della registrazione)
-    if (nomeController.text.isEmpty ||
-        cognomeController.text.isEmpty ||
-        nomeUtenteController.text.isEmpty ||
-        etaController.text.isEmpty ||
-        sessoController.text.isEmpty ||
-        altezzaController.text.isEmpty ||
-        pesoController.text.isEmpty ||
+    if (nameController.text.isEmpty ||
+        surnameController.text.isEmpty ||
+        usernameController.text.isEmpty ||
+        ageController.text.isEmpty ||
+        genderController.text.isEmpty ||
+        heightController.text.isEmpty ||
+        weightController.text.isEmpty ||
         emailController.text.isEmpty) {
-      _showSnackBar('Tutti i campi devono essere compilati');
+      _showSnackBar('Every field must be filled!');
       return;
     }
 
     final sharedPreferences = await SharedPreferences.getInstance();
-    await sharedPreferences.setString('nome', nomeController.text);
-    await sharedPreferences.setString('cognome', cognomeController.text);
-    await sharedPreferences.setString('username', nomeUtenteController.text);
-    await sharedPreferences.setString('eta', etaController.text);
-    await sharedPreferences.setString('sesso', sessoController.text);
-    await sharedPreferences.setString('altezza', altezzaController.text);
-    await sharedPreferences.setString('peso', pesoController.text);
+    await sharedPreferences.setString('name', nameController.text);
+    await sharedPreferences.setString('surname', surnameController.text);
+    await sharedPreferences.setString('username', usernameController.text);
+    await sharedPreferences.setString('age', ageController.text);
+    await sharedPreferences.setString('gender', genderController.text);
+    await sharedPreferences.setString('height', heightController.text);
+    await sharedPreferences.setString('weight', weightController.text);
     await sharedPreferences.setString('email', emailController.text);
 
-    _showSnackBar('Modifiche salvate con successo!');
+    _showSnackBar('Saved successfully!');
   }
 
   void _showSnackBar(String messaggio) {
@@ -82,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: const Text("Impostazioni Profilo"),
+        title: const Text("Profile Settings"),
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       ),
       body: _isLoading
@@ -93,14 +93,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     const SizedBox(height: 10),
-                    _buildTextField(nomeController, 'Nome', 'Modifica il tuo nome'),
-                    _buildTextField(cognomeController, 'Cognome', 'Modifica il tuo cognome'),
-                    _buildTextField(nomeUtenteController, 'Nome utente', 'Modifica il tuo nome utente'),
-                    _buildTextField(etaController, 'Età', 'Modifica la tua età', isNumber: true),
-                    _buildTextField(sessoController, 'Sesso', 'M/F'),
-                    _buildTextField(altezzaController, 'Altezza (cm)', 'Modifica la tua altezza', isNumber: true),
-                    _buildTextField(pesoController, 'Peso (kg)', 'Modifica il tuo peso', isNumber: true),
-                    _buildTextField(emailController, 'Email', 'Modifica la tua email'),
+                    _buildTextField(nameController, 'Name', 'Modify your name'),
+                    _buildTextField(surnameController, 'Surname', 'Modify your surname'),
+                    _buildTextField(usernameController, 'Username', 'Modify your username'),
+                    _buildTextField(ageController, 'Age', 'Modify your age', isNumber: true),
+                    _buildTextField(genderController, 'Gender', 'M/F'),
+                    _buildTextField(heightController, 'Height (cm)', 'Modify your height', isNumber: true),
+                    _buildTextField(weightController, 'Weight (kg)', 'Modify your weight', isNumber: true),
+                    _buildTextField(emailController, 'Email', 'Modify your email'),
                     
                     const SizedBox(height: 25),
                     
@@ -113,11 +113,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-                          side: const BorderSide(color: Colors.white, width: 1), // Un tocco di stacco grafico
+                          side: const BorderSide(color: Colors.white, width: 1), 
                         ),
                         onPressed: _saveUserData,
                         child: const Text(
-                          'Salva Modifiche',
+                          'Save Changes',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
