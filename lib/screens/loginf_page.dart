@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:applicazione_progetto/screens/provider_page.dart';
-import 'package:applicazione_progetto/screens/splash_screen.dart';
-import 'package:applicazione_progetto/screens/register_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:applicazione_progetto/screens/splash_page.dart';
+import 'package:applicazione_progetto/screens/register_page.dart';
 
 
 // LOGIN SCREEN — Schermata di accesso per utenti già registrati.

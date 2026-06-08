@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/login_screen.dart';
+import 'package:applicazione_progetto/screens/provider_page.dart';
+import 'package:applicazione_progetto/screens/loginf_page.dart';
 
 
 // REGISTER SCREEN — Schermata di registrazione, eseguita una sola volta.
@@ -26,10 +25,10 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
 
-  final TextEditingController nomeRealeController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
-  final TextEditingController pesoController = TextEditingController();
-  final TextEditingController sessoController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
+  final TextEditingController genderController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool termsAccepted = false;
@@ -96,10 +95,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
 
-              _field(nomeRealeController, 'Full name', 'Enter your real name'),
+              _field(nameController, 'Full name', 'Enter your real name'),
               _field(usernameController, 'Username', 'Choose a username'),
-              _field(pesoController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
-              _field(sessoController, 'Sex', 'M or F'),
+              _field(weightController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
+              _field(genderController, 'Sex', 'M or F'),
               _field(passwordController, 'Password', 'Choose a password', obscure: true),
               _field(confirmPasswordController, 'Confirm password', 'Repeat your password', obscure: true),
 
@@ -157,10 +156,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: () async {
 
                   // Validazione campi vuoti
-                  if (nomeRealeController.text.isEmpty ||
+                  if (nameController.text.isEmpty ||
                       usernameController.text.isEmpty ||
-                      pesoController.text.isEmpty ||
-                      sessoController.text.isEmpty ||
+                      weightController.text.isEmpty ||
+                      genderController.text.isEmpty ||
                       passwordController.text.isEmpty ||
                       confirmPasswordController.text.isEmpty) {
                     ScaffoldMessenger.of(context)
@@ -178,7 +177,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
 
                   // Validazione sesso
-                  final sesso = sessoController.text.toUpperCase();
+                  final sesso = genderController.text.toUpperCase();
                   if (sesso != 'M' && sesso != 'F') {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
@@ -199,9 +198,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   await userProvider.saveUser(
                     username: usernameController.text,
                     password: passwordController.text,
-                    nomeReale: nomeRealeController.text,
+                    nomeReale: nameController.text,
                     sesso: sesso,
-                    peso: double.parse(pesoController.text),
+                    peso: double.parse(weightController.text),
                   );
 
                   // Richiede permesso GPS mentre l'utente è ancora sobrio
