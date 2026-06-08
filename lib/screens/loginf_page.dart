@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:applicazione_progetto/screens/provider_page.dart';
+import 'package:applicazione_progetto/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:applicazione_progetto/screens/splash_page.dart';
 import 'package:applicazione_progetto/screens/register_page.dart';

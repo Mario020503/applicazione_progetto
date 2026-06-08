@@ -4,6 +4,7 @@ import 'package:applicazione_progetto/screens/calendar_page.dart';
 import 'package:applicazione_progetto/screens/login_page.dart';
 import 'package:applicazione_progetto/screens/settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -134,5 +135,21 @@ class _HomePageState extends State<HomePage> {
     Navigator.pop(currentContext);
     Navigator.of(currentContext).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
   }
+
+ //This method allows to check if the IMPACT backend is up
+  Future<bool> _isImpactUp() async {
+
+    //Create the request
+    final url = Impact.baseUrl + Impact.pingEndpoint;
+
+    //Get the response
+    print('Calling: $url');
+    final response = await http.get(Uri.parse(url));
+
+    //Just return if the status code is OK
+    return response.statusCode == 200;
+  } //_isImpactUp
+
+
 
 } //HomePage

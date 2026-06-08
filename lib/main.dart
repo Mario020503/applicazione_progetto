@@ -4,6 +4,10 @@ import 'package:applicazione_progetto/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+// import 'package:applicazione_progetto/providers/user_provider.dart';
+
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Inizializza i dati per la lingua italiana in modo asincrono
@@ -47,4 +51,5 @@ class MyApp extends StatelessWidget {
       ),
     );
   } //build
+
 } //MyApp
