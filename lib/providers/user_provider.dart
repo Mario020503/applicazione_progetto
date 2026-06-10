@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-// SHARED PREFERENCES KEYS, non cambiano
-// Usate sempre queste key in ogni schermo che le chiami.
+// SHARED PREFERENCES KEYS
+// Usiamo sempre e solo queste 
 //
 // 'username'                 → l'username scelto con cui l'app ti saluta
 // 'password'                 → la password del login
@@ -70,6 +70,13 @@ class UserProvider extends ChangeNotifier {
     await prefs.setString('weight', weight.toString());
 
     notifyListeners();
+  }
+
+  Future<string> getPassword() async {
+    isUserLogged = true;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('password') ?? '';
+
   }
 
   // Chiamata dal login, nel caso in cui il controllo delle credenziali sia andato a buon fine

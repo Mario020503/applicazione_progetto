@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:buzzed_buddy/screens/home_page.dart';
 import 'package:buzzed_buddy/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,48 +9,79 @@ import 'package:intl/intl.dart';
 
 
 
+=======
+import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/loginf_page.dart';
+import 'package:buzzed_buddy/screens/splash_page.dart';
+ 
+>>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Inizializza i dati per la lingua italiana in modo asincrono
   await initializeDateFormatting('it_IT', null);
-  // Imposta il locale predefinito per tutta l'applicazione
   Intl.defaultLocale = 'it_IT';
-  
-  runApp(MyApp());
-} //main
-
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => UserProvider(),
+      child: MyApp(),
+    ),
+  );
+}
+ 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+ 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      //Now the home becomes a FutureBuilder: we need to wait for the instance of SharedPreferences
-      home: FutureBuilder(
-        future: SharedPreferences.getInstance(),
-        builder: (context, snapshot) {
-          //If the instance is ready...
-          if (snapshot.hasData) {
-            //...get the instance
-            final sharedPreferences = snapshot.data!;
-            //Check if the flag isUserLogged exist...
-            if (sharedPreferences.getBool('isUserLogged') != null) {
-              //..if so, go directly to HomePage
-              return HomePage();
-            } //if
-            else {
-              //...otherwise go to LoginPage
-              return LoginPage();
-            } //else
-          } //if
-          else {
-            //While the instance of SharedPreferences is loading, just show a CircularProgress indicator in the Center
-            return Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          } //else
-        },
+      title: 'BuzzedBuddy',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color.fromARGB(255, 255, 196, 0),
+        ),
+        useMaterial3: true,
       ),
+      home: AppEntry(),
     );
-  } //build
-
-} //MyApp
+  }
+}
+ 
+// Widget separato per usare il Provider dopo la sua creazione
+class AppEntry extends StatefulWidget {
+  const AppEntry({super.key});
+  @override
+  State<AppEntry> createState() => _AppEntryState();
+}
+ 
+class _AppEntryState extends State<AppEntry> {
+  bool _loading = true;
+ 
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+ 
+  Future<void> _init() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    await userProvider.loadFromSharedPreferences();
+    setState(() => _loading = false);
+  }
+ 
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+    final user = Provider.of<UserProvider>(context);
+    // Loggato → SplashScreen (logo + LET'S GO → HomePage)
+    // Non loggato → LoginScreen (con pulsante SIGN UP)
+    return user.isUserLogged ? SplashScreen() : LoginScreen();
+  }
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+<<<<<<< HEAD
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buzzed_buddy/screens/splash_page.dart';
@@ -15,24 +16,31 @@ import 'package:buzzed_buddy/screens/register_page.dart';
 // La password NON vive nel Provider per motivi di sicurezza.
 
 
+=======
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/splash_page.dart';
+import 'package:buzzed_buddy/screens/registerf_page.dart';
+ 
+>>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
+ 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
+ 
 class _LoginScreenState extends State<LoginScreen> {
-
+ 
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
-
-  // Legge la password da SharedPreferences, niente a che fare con il Provider
+ 
   Future<String> _getPassword() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('password') ?? '';
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
+ 
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 15),
               child: TextField(
@@ -60,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-
+ 
             SizedBox(height: 15),
-
+ 
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 15),
               child: TextField(
@@ -78,10 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-
+ 
             SizedBox(height: 30),
-
-            // verifica le credenziali e se tutto apposto va a SplashScreen
+ 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
@@ -94,13 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () async {
                 final userProvider = Provider.of<UserProvider>(context, listen: false);
                 final savedPassword = await _getPassword();
-
+ 
                 if (usernameController.text == userProvider.username &&
                     passwordController.text == savedPassword) {
                   await userProvider.login();
-
                   if (!mounted) return;
-
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => SplashScreen()),
@@ -118,10 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-
+ 
             SizedBox(height: 15),
-
-            // SIGN UP alla prima apertura o da nuovo dispositivo 
+ 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
@@ -142,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-
+ 
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
 import 'package:buzzed_buddy/screens/calendar_page.dart';
 import 'package:buzzed_buddy/screens/login_page.dart';
@@ -6,31 +7,29 @@ import 'package:buzzed_buddy/screens/settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+=======
+import 'package:provider/provider.dart';
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/calendar_page.dart';
+import 'package:buzzed_buddy/screens/loginf_page.dart';
+import 'package:buzzed_buddy/screens/settings_page.dart';
+import 'package:buzzed_buddy/screens/session_page.dart';
+ 
+>>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
+ 
   @override
   State<HomePage> createState() => _HomePageState();
 }
-
+ 
 class _HomePageState extends State<HomePage> {
-  String loggedUsername = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUsername();
-  }
-
-  void _loadUsername() async {
-    final sharedPreferences = await SharedPreferences.getInstance();
-    setState(() {
-      loggedUsername = sharedPreferences.getString('loggedUsername') ?? '';
-    });
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
+    // Legge l'username dal Provider, si aggiorna automaticamente se cambia
+    final user = Provider.of<UserProvider>(context);
+ 
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
@@ -42,7 +41,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Welcome $loggedUsername',
+              'Welcome ${user.username ?? ''}',
               style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 50),
@@ -55,11 +54,10 @@ class _HomePageState extends State<HomePage> {
                   backgroundColor: Colors.white,
                 ),
                 onPressed: () {
-                  // Aggiungi la logica per il pulsante "Iniziamo"
-                  // Va alla pagina drink-serata
-                  ScaffoldMessenger.of(context)
-                    ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(content: Text('Welcome in BuzzedBuddy !')));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SessionScreen()),
+                  );
                 },
                 child: Text(
                   'Iniziamo',
@@ -80,76 +78,47 @@ class _HomePageState extends State<HomePage> {
             ListTile(
               leading: Icon(Icons.home),
               title: Text('Home'),
-              onTap: () {
-                _toHomePage(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: Icon(Icons.calendar_today),
               title: Text('Calendar'),
               onTap: () {
-                _toCalendarPage(context);
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => CalendarPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Settings'),
               onTap: () {
-                _toSettingsPage(context);
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => SettingsPage()),
+                );
               },
             ),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Logout'),
-              onTap: () {
-                _toLoginPage(context);
-              },
+              onTap: () => _logout(context),
             ),
           ],
         ),
       ),
     );
-  } //build
-
-  void _toHomePage(BuildContext context) {
-    Navigator.pop(context);
   }
-
-  void _toCalendarPage(BuildContext context) {
-    Navigator.pop(context);
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => CalendarPage()));
+ 
+  void _logout(BuildContext context) async {
+    final user = Provider.of<UserProvider>(context, listen: false);
+    await user.logout();
+    if (!context.mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => LoginScreen()),
+      (route) => false,
+    );
   }
-
-  void _toSettingsPage(BuildContext context) {
-    Navigator.pop(context);
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => SettingsPage()));
-  }
-
-  void _toLoginPage(BuildContext context) async{
-    final currentContext = context;
-    final sharedPreferences = await SharedPreferences.getInstance();
-    await sharedPreferences.remove('isUserLogged');
-
-    if (!currentContext.mounted) return;
-
-    Navigator.pop(currentContext);
-    Navigator.of(currentContext).pushReplacement(MaterialPageRoute(builder: (context) => LoginPage()));
-  }
-
- //This method allows to check if the IMPACT backend is up
-  Future<bool> _isImpactUp() async {
-
-    //Create the request
-    final url = Impact.baseUrl + Impact.pingEndpoint;
-
-    //Get the response
-    print('Calling: $url');
-    final response = await http.get(Uri.parse(url));
-
-    //Just return if the status code is OK
-    return response.statusCode == 200;
-  } //_isImpactUp
-
-
-
-} //HomePage
+}
+ 

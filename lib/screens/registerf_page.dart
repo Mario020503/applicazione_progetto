@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+<<<<<<< HEAD
 import 'package:buzzed_buddy/screens/provider_page.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
 
@@ -16,15 +18,20 @@ import 'package:buzzed_buddy/screens/loginf_page.dart';
 // quando l'utente è sobrio e può dare un consenso informato.
 
 
+=======
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/loginf_page.dart';
+ 
+>>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
+ 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
-
+ 
 class _RegisterScreenState extends State<RegisterScreen> {
-
+ 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
@@ -32,8 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool termsAccepted = false;
-
-  // Mostra il dialog delle condizioni di servizio
+ 
   void _showTerms(BuildContext context) {
     showDialog(
       context: context,
@@ -69,17 +75,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       },
     );
   }
-
-  // Richiede il permesso GPS, chiamato dopo la registrazione,
-  // quando l'utente è sobrio e può dare un consenso informato. 
-  // l'ho messo qua, fin da subito, non chiediamo agli sbronzi di accettare roba
+ 
   Future<void> _requestLocationPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       await Geolocator.requestPermission();
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,15 +97,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-
+ 
               _field(nameController, 'Full name', 'Enter your real name'),
               _field(usernameController, 'Username', 'Choose a username'),
               _field(weightController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
               _field(genderController, 'Sex', 'M or F'),
               _field(passwordController, 'Password', 'Choose a password', obscure: true),
               _field(confirmPasswordController, 'Confirm password', 'Repeat your password', obscure: true),
-
-              // Checkbox condizioni di servizio
+ 
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
                 child: Row(
@@ -132,18 +134,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onTap: () => _showTerms(context),
                         child: Text(
                           'I accept the Terms of Service',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // Pulsante SIGN UP, valida, salva, chiede GPS, naviga a LoginScreen
+ 
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
@@ -154,8 +152,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 onPressed: () async {
-
-                  // Validazione campi vuoti
                   if (nameController.text.isEmpty ||
                       usernameController.text.isEmpty ||
                       weightController.text.isEmpty ||
@@ -167,16 +163,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ..showSnackBar(SnackBar(content: Text('Please fill in all fields')));
                     return;
                   }
-
-                  // Validazione password uguali
                   if (passwordController.text != confirmPasswordController.text) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
                       ..showSnackBar(SnackBar(content: Text('Passwords do not match')));
                     return;
                   }
-
-                  // Validazione sesso
                   final sesso = genderController.text.toUpperCase();
                   if (sesso != 'M' && sesso != 'F') {
                     ScaffoldMessenger.of(context)
@@ -184,34 +176,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ..showSnackBar(SnackBar(content: Text('Sex must be M or F')));
                     return;
                   }
-
-                  // Validazione condizioni
                   if (!termsAccepted) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
                       ..showSnackBar(SnackBar(content: Text('You must accept the Terms of Service')));
                     return;
                   }
-
-                  // Salva i dati nel Provider e su SharedPreferences
+ 
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
                   await userProvider.saveUser(
                     username: usernameController.text,
                     password: passwordController.text,
-                    nomeReale: nameController.text,
-                    sesso: sesso,
-                    peso: double.parse(weightController.text),
+                    name: nameController.text,
+                    gender: sesso,
+                    weight: double.parse(weightController.text),
                   );
-
-                  // Richiede permesso GPS mentre l'utente è ancora sobrio
+ 
                   await _requestLocationPermission();
-
+ 
                   if (!mounted) return;
-
+ 
                   ScaffoldMessenger.of(context)
                     ..removeCurrentSnackBar()
                     ..showSnackBar(SnackBar(content: Text('Account created! Please log in.')));
-
+ 
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => LoginScreen()),
@@ -222,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-
+ 
               SizedBox(height: 30),
             ],
           ),
@@ -230,8 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
-  // Widget helper per i campi di testo, evita di scrivere 800 volte la stessa roba
+ 
   Widget _field(TextEditingController controller, String label, String hint,
       {bool obscure = false, bool numbersOnly = false}) {
     return Padding(

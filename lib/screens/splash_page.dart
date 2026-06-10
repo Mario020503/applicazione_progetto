@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+<<<<<<< HEAD
 import 'package:buzzed_buddy/screens/provider_page.dart';
 import 'package:buzzed_buddy/screens/registerf_page.dart';
 
@@ -11,14 +12,19 @@ import 'package:buzzed_buddy/screens/registerf_page.dart';
 // INIZIAMO con la navigazione verso HRVScreen.
 
 
+=======
+import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/screens/registerf_page.dart';
+import 'package:buzzed_buddy/screens/home_page.dart';
+ 
+>>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
-
+ 
   @override
   Widget build(BuildContext context) {
-    // Legge i dati dell'utente dalla bacheca centrale (Provider)
     final user = Provider.of<UserProvider>(context);
-
+ 
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -28,15 +34,12 @@ class SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-
-            // Logo dell'app 
+ 
             Image.asset(
               'assets/images/LogoBB.png',
-              width: 600,
-              height: 450,
+              width: MediaQuery.of(context).size.width * 0.7,
             ),
-
-            // Saluto adattivo: nome utente se registrato, nome app altrimenti
+ 
             Text(
               user.username != null
                   ? "Welcome back, ${user.username}!"
@@ -48,17 +51,19 @@ class SplashScreen extends StatelessWidget {
                 color: Colors.black,
               ),
             ),
-
+ 
             SizedBox(height: 40),
-
-            // Pulsante adattivo, SIGN UP per nuovi utenti, LET'S GO per registrati
+ 
             ElevatedButton(
               onPressed: () {
                 if (user.username != null) {
-                 
-                  // Navigator.push(context, MaterialPageRoute(builder: (_) => HRVScreen()));
+                  // LET'S GO → HomePage (con drawer per Calendar e Settings)
+                  // TODO: inserire HRVScreen prima di HomePage quando pronta
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => HomePage()),
+                  );
                 } else {
-                  // Nuovo utente → schermata di registrazione
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => RegisterScreen()),
@@ -82,7 +87,7 @@ class SplashScreen extends StatelessWidget {
                 ),
               ),
             ),
-
+ 
           ],
         ),
       ),
