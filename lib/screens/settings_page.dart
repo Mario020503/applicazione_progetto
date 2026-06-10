@@ -1,82 +1,83 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:provider/provider.dart';
+import 'package:buzzed_buddy/providers/user_provider.dart';
+ 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
+ 
 class _SettingsPageState extends State<SettingsPage> {
-  
-  // Controller per tutti i campi modificabili
+ 
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController surnameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
-  final TextEditingController ageController = TextEditingController();
   final TextEditingController genderController = TextEditingController();
-  final TextEditingController heightController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+ 
   bool _isLoading = true;
-
+ 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // Carica i dati non appena la pagina viene aperta
+    _loadUserData();
   }
-
-  // Metodo per caricare i dati salvati in SharedPreferences
+ 
   Future<void> _loadUserData() async {
-    final sharedPreferences = await SharedPreferences.getInstance();
+    final user = Provider.of<UserProvider>(context, listen: false);
     setState(() {
-      // Recupera i dati
-      nameController.text = sharedPreferences.getString('name') ?? '';
-      surnameController.text = sharedPreferences.getString('surname') ?? '';
-      usernameController.text = sharedPreferences.getString('username') ?? '';
-      ageController.text = sharedPreferences.getString('age') ?? '';
-      genderController.text = sharedPreferences.getString('gender') ?? '';
-      heightController.text = sharedPreferences.getString('height') ?? '';
-      weightController.text = sharedPreferences.getString('weight') ?? '';
-      emailController.text = sharedPreferences.getString('email') ?? '';
+      nameController.text = user.name ?? '';
+      usernameController.text = user.username ?? '';
+      genderController.text = user.gender ?? '';
+      weightController.text = user.weight?.toString() ?? '';
       _isLoading = false;
     });
   }
-
-  // Metodo per salvare i dati modificati
+ 
   Future<void> _saveUserData() async {
-    // Validazione campi vuoti (stessa logica della registrazione)
     if (nameController.text.isEmpty ||
-        surnameController.text.isEmpty ||
         usernameController.text.isEmpty ||
-        ageController.text.isEmpty ||
-        genderController.text.isEmpty ||
-        heightController.text.isEmpty ||
         weightController.text.isEmpty ||
-        emailController.text.isEmpty) {
-      _showSnackBar('Every field must be filled!');
+        genderController.text.isEmpty) {
+      _showSnackBar('Name, username, weight and sex are required!');
       return;
     }
-
-    final sharedPreferences = await SharedPreferences.getInstance();
-    await sharedPreferences.setString('name', nameController.text);
-    await sharedPreferences.setString('surname', surnameController.text);
-    await sharedPreferences.setString('username', usernameController.text);
-    await sharedPreferences.setString('age', ageController.text);
-    await sharedPreferences.setString('gender', genderController.text);
-    await sharedPreferences.setString('height', heightController.text);
-    await sharedPreferences.setString('weight', weightController.text);
-    await sharedPreferences.setString('email', emailController.text);
-
+ 
+    final gender = genderController.text.toUpperCase();
+    if (gender != 'M' && gender != 'F') {
+      _showSnackBar('Sex must be M or F');
+      return;
+    }
+ 
+    if (passwordController.text.isNotEmpty &&
+        passwordController.text != confirmPasswordController.text) {
+      _showSnackBar('Passwords do not match');
+      return;
+    }
+ 
+    final user = Provider.of<UserProvider>(context, listen: false);
+    await user.saveUser(
+      username: usernameController.text,
+      // Se la password è vuota, mantieni quella esistente
+      password: passwordController.text.isNotEmpty
+          ? passwordController.text
+          : await user.getPassword(),
+      name: nameController.text,
+      gender: gender,
+      weight: double.parse(weightController.text),
+    );
+ 
     _showSnackBar('Saved successfully!');
   }
-
-  void _showSnackBar(String messaggio) {
+ 
+  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(messaggio)));
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,25 +87,20 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : Center(
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
+                  children: [
                     const SizedBox(height: 10),
-                    _buildTextField(nameController, 'Name', 'Modify your name'),
-                    _buildTextField(surnameController, 'Surname', 'Modify your surname'),
+                    _buildTextField(nameController, 'Full name', 'Modify your name'),
                     _buildTextField(usernameController, 'Username', 'Modify your username'),
-                    _buildTextField(ageController, 'Age', 'Modify your age', isNumber: true),
-                    _buildTextField(genderController, 'Gender', 'M/F'),
-                    _buildTextField(heightController, 'Height (cm)', 'Modify your height', isNumber: true),
+                    _buildTextField(genderController, 'Sex (M/F)', 'M or F'),
                     _buildTextField(weightController, 'Weight (kg)', 'Modify your weight', isNumber: true),
-                    _buildTextField(emailController, 'Email', 'Modify your email'),
-                    
+                    _buildTextField(passwordController, 'New password', 'Leave blank to keep current', obscure: true),
+                    _buildTextField(confirmPasswordController, 'Confirm new password', 'Repeat new password', obscure: true),
                     const SizedBox(height: 25),
-                    
-                    // Pulsante Salva Modifiche
                     Container(
                       height: 50,
                       width: 250,
@@ -112,8 +108,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-                          side: const BorderSide(color: Colors.white, width: 1), 
+                          backgroundColor: Colors.black,
+                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
                         ),
                         onPressed: _saveUserData,
                         child: const Text(
@@ -128,20 +124,22 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
     );
   }
-
-  // Helper Widget per evitare di ripetere 8 volte lo stesso identico blocco di Padding/TextField
-  Widget _buildTextField(TextEditingController controller, String label, String hint, {bool isNumber = false}) {
+ 
+  Widget _buildTextField(TextEditingController controller, String label, String hint,
+      {bool isNumber = false, bool obscure = false}) {
     return Padding(
       padding: const EdgeInsets.all(15.0),
       child: TextField(
         controller: controller,
+        obscureText: obscure,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: const OutlineInputBorder(),
-            labelText: label,
-            hintText: hint),
+          filled: true,
+          fillColor: Colors.white,
+          border: const OutlineInputBorder(),
+          labelText: label,
+          hintText: hint,
+        ),
       ),
     );
   }

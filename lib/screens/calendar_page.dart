@@ -132,17 +132,17 @@ class _CalendarPageState extends State<CalendarPage> {
 
     final days = <DateTime>[];
 
-    // Add previous month's days
+    
     for (int i = firstWeekday - 1; i > 0; i--) {
       days.add(firstDayOfMonth.subtract(Duration(days: i)));
     }
 
-    // Add current month's days
+    
     for (int i = 1; i <= daysInMonth; i++) {
       days.add(DateTime(_focusedDate.year, _focusedDate.month, i));
     }
 
-    // Add next month's days
+   
     final remainingDays = 42 - days.length;
     for (int i = 1; i <= remainingDays; i++) {
       days.add(DateTime(_focusedDate.year, _focusedDate.month + 1, i));

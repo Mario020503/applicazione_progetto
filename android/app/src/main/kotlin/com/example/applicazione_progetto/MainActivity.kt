@@ -1,4 +1,4 @@
-package com.example.applicazione_progetto
+package com.example.buzzed_buddy
 
 import io.flutter.embedding.android.FlutterActivity
 
