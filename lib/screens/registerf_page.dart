@@ -2,27 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-<<<<<<< HEAD
-import 'package:buzzed_buddy/screens/provider_page.dart';
-import 'package:buzzed_buddy/screens/loginf_page.dart';
-
-
-// REGISTER SCREEN — Schermata di registrazione, eseguita una sola volta.
-// Raccoglie i dati minimi necessari per il funzionamento dell'app:
-//   - Nome reale, usato nel messaggio di emergenza
-//   - Username, usato nel saluto e nel login
-//   - Password, login
-//   - Peso in kg 
-//   - Sesso M/F
-// Chiede anche il permesso GPS durante la registrazione,
-// quando l'utente è sobrio e può dare un consenso informato.
-
-
-=======
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
  
->>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
  
