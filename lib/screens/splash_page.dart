@@ -1,23 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-<<<<<<< HEAD
-import 'package:buzzed_buddy/screens/provider_page.dart';
-import 'package:buzzed_buddy/screens/registerf_page.dart';
-
-
-// SPLASH SCREEN — Prima schermata che l'utente vede.
-// Si comporta in modo adattivo:
-//   - Utente non registrato → mostra SIGN UP → RegisterScreen
-//   - Utente registrato     → mostra INIZIAMO → HRVScreen 
-// INIZIAMO con la navigazione verso HRVScreen.
-
-
-=======
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/registerf_page.dart';
 import 'package:buzzed_buddy/screens/home_page.dart';
  
->>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
  
