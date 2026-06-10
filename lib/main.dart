@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:buzzed_buddy/screens/home_page.dart';
 import 'package:buzzed_buddy/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,19 +8,10 @@ import 'package:intl/intl.dart';
 
 
 
-=======
-import 'package:provider/provider.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:intl/intl.dart';
-import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/loginf_page.dart';
-import 'package:buzzed_buddy/screens/splash_page.dart';
- 
->>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('it_IT', null);
-  Intl.defaultLocale = 'it_IT';
+  await initializeDateFormatting('en_GB', null);
+  Intl.defaultLocale = 'en_GB';
   runApp(
     ChangeNotifierProvider(
       create: (_) => UserProvider(),
