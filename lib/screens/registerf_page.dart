@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:applicazione_progetto/screens/provider_page.dart';
-import 'package:applicazione_progetto/screens/loginf_page.dart';
+import 'package:buzzed_buddy/screens/provider_page.dart';
+import 'package:buzzed_buddy/screens/loginf_page.dart';
 
 
 // REGISTER SCREEN — Schermata di registrazione, eseguita una sola volta.

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:applicazione_progetto/screens/home_page.dart';
-import 'package:applicazione_progetto/screens/login_page.dart';
+import 'package:buzzed_buddy/screens/home_page.dart';
+import 'package:buzzed_buddy/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
-// import 'package:applicazione_progetto/providers/user_provider.dart';
+// import 'package:buzzed_buddy/providers/user_provider.dart';
 
 
 

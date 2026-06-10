@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:applicazione_progetto/screens/login_page.dart';
+import 'package:buzzed_buddy/screens/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {

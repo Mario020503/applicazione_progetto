@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:applicazione_progetto/screens/provider_page.dart';
-import 'package:applicazione_progetto/screens/registerf_page.dart';
+import 'package:buzzed_buddy/screens/provider_page.dart';
+import 'package:buzzed_buddy/screens/registerf_page.dart';
 
 
 // SPLASH SCREEN — Prima schermata che l'utente vede.

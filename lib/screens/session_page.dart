@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:applicazione_progetto/screens/provider_page.dart';
+import 'package:buzzed_buddy/screens/provider_page.dart';
 
 
 // SESSION SCREEN — Schermata principale durante la serata.
