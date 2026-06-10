@@ -72,7 +72,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<string> getPassword() async {
+  Future<String> getPassword() async {
     isUserLogged = true;
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('password') ?? '';
