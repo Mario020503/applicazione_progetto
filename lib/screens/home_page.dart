@@ -1,13 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-
-import 'package:buzzed_buddy/screens/calendar_page.dart';
-import 'package:buzzed_buddy/screens/login_page.dart';
-import 'package:buzzed_buddy/screens/settings_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-
-=======
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/calendar_page.dart';
@@ -15,7 +6,6 @@ import 'package:buzzed_buddy/screens/loginf_page.dart';
 import 'package:buzzed_buddy/screens/settings_page.dart';
 import 'package:buzzed_buddy/screens/session_page.dart';
  
->>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
  
@@ -121,4 +111,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+ 
  
