@@ -37,7 +37,7 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Column(
                 children: [
                   Text(
-                    'Mese: ${DateFormat.yMMM('en_GB').format(_focusedDate)}',
+                    'Month: ${DateFormat.yMMM('en_GB').format(_focusedDate)}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -242,5 +242,3 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 }
-
-
