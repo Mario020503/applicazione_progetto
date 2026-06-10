@@ -1,4 +1,4 @@
-# applicazione_progetto
+# buzzed_buddy
 
 A new Flutter project.
 
