@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/login_screen.dart';
-import 'package:buzzed_buddy/screens/session_screen.dart';
+import 'package:buzzed_buddy/screens/splash_screen.dart';
  
-
-// MAIN — Versione di test per sviluppo.
-// Bypassa SplashScreen e HRVScreen e va direttamente a SessionScreen.
+// ============================================================
+// MAIN — Flusso completo con bypass HRVScreen per test.
+//
 // Flusso:
 //   isUserLogged == false → LoginScreen (→ RegisterScreen se necessario)
-//   isUserLogged == true  → SessionScreen (bypass completo)
-// sostituire SessionScreen con SplashScreen nel MaterialApp home.
-
+//   isUserLogged == true  → SplashScreen → LET'S GO → SessionScreen
+//
+// TODO: quando HRVScreen sarà pronta, aggiornare splash_screen.dart
+// per navigare verso HRVScreen invece di SessionScreen.
+// ============================================================
  
 void main() {
   runApp(
@@ -82,9 +84,10 @@ class _AppEntryState extends State<AppEntry> {
     // Utente loggato → SessionScreen diretta (modalità test)
     // Utente non loggato → LoginScreen (da cui si raggiunge RegisterScreen)
     if (user.isUserLogged) {
-      return SessionScreen();
+      return SplashScreen();
     } else {
       return LoginScreen();
     }
   }
 }
+ 

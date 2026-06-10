@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProvider extends ChangeNotifier {
 
-  // User data — set during registration
+  //I dati dello user
   String? username;
   String? nomeReale;
   String? sesso;
