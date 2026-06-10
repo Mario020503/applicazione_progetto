@@ -3,28 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
-<<<<<<< HEAD
-import 'package:buzzed_buddy/screens/provider_page.dart';
-
-
-// SESSION SCREEN — Schermata principale durante la serata.
-// Traccia il BAC in tempo reale usando la formula di Widmark.
-// Legge peso e sesso dal UserProvider (salvati durante la registrazione).
-//
-// SOGLIE DI PERICOLO (si adattano al livello di stress del giorno):
-//   Stress normale → arancione a 0.5 g/L, rosso a 1.5 g/L
-//   Stress alto    → arancione a 0.3 g/L, rosso a 1.2 g/L
-//  Livello di stress verrà impostato dopo aver creato la HomePage
-//
-// PULSANTE CHIAMA AIUTO:
-//   Legge nomeContatto e telefonoContatto dal Provider.
-//   Questi dovranno essere impostati negli schermi appositi 
-
-
-=======
 import 'package:buzzed_buddy/providers/user_provider.dart';
  
->>>>>>> 306e06eafbed07d0e6b4835e46da1e1c11796a74
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key});
  
