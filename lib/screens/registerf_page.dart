@@ -37,7 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               '4. Keep your password secure\n'
               '5. Open the app BEFORE you start drinking for accurate BAC tracking\n'
               '6. Allow location access to be used in case of emergency\n\n'
-              'For more information, contact us at buzzedbuddy@gmail.com.',
             ),
           ),
           actions: [
@@ -59,9 +58,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
  
   Future<void> _requestLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      await Geolocator.requestPermission();
+    // Avvolto in try/catch: se la richiesta del permesso fallisce non deve
+    // bloccare la registrazione
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {
+      
     }
   }
  
@@ -165,6 +170,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return;
                   }
  
+                  // Catturiamo Navigator e Messenger prima degli await:
+                  // usarli dopo, tramite il context, è fragile
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
                   await userProvider.saveUser(
                     username: usernameController.text,
@@ -176,14 +185,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
  
                   await _requestLocationPermission();
  
-                  if (!mounted) return;
+                  // niente guardia su mounted navigator/messenger sono già catturati
  
-                  ScaffoldMessenger.of(context)
+                  messenger
                     ..removeCurrentSnackBar()
                     ..showSnackBar(SnackBar(content: Text('Account created! Please log in.')));
  
-                  Navigator.pushReplacement(
-                    context,
+                  navigator.pushReplacement(
                     MaterialPageRoute(builder: (_) => LoginScreen()),
                   );
                 },
