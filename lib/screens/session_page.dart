@@ -1,31 +1,61 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
- 
+import 'package:buzzed_buddy/providers/storico_provider.dart';
+
+// Quanto ha mangiato l'utente prima della serata.
+// Scelto in PreSessionScreen, attiva il coefficiente di attenuazione del BAC.
+enum LivelloCibo { niente, spuntino, pasto }
+
 class SessionScreen extends StatefulWidget {
-  const SessionScreen({super.key});
- 
+  // Livello cibo della serata corrente, passato da PreSessionScreen.
+  final LivelloCibo livelloCibo;
+  const SessionScreen({super.key, required this.livelloCibo});
+
   @override
   State<SessionScreen> createState() => _SessionScreenState();
 }
- 
+
 class _SessionScreenState extends State<SessionScreen> {
- 
+
   DateTime _sessionStart = DateTime.now();
   final List<Map<String, dynamic>> _drinks = [];
- 
+
   double _currentBAC = 0.0;
   String _selectedDrink = 'Small beer (330ml)';
   int _quantity = 1;
   bool _callingForHelp = false;
   Timer? _timer;
- 
+
+  // Ponte verso il codice nativo Android per aprire l'app SMS predefinita.
+  static const _smsChannel = MethodChannel('buzzedbuddy/sms');
+
+  // Picco di BAC raggiunto nella serata: è il valore che va nello storico
+  // (non il BAC corrente, che a fine nottata è già sceso).
+  double _peakBAC = 0;
+  // Riferimento allo StoricoProvider preso una volta sola in initState, così
+  // è utilizzabile anche in dispose() senza cercare il context.
+  late final StoricoProvider _storicoProv;
+
   double _orangeThreshold = 0.5;
   double _redThreshold = 1.5;
- 
+
+  // Coefficiente di attenuazione del BAC in base a quanto si è mangiato.
+  // Il cibo rallenta l'assorbimento e abbassa il picco: stomaco vuoto = nessuna
+  // attenuazione (1.0), pasto completo = picco più basso (0.8).
+  double get _foodFactor {
+    switch (widget.livelloCibo) {
+      case LivelloCibo.niente:   return 1.0;
+      case LivelloCibo.spuntino: return 0.9;
+      case LivelloCibo.pasto:    return 0.8;
+    }
+  }
+
   final Map<String, Map<String, dynamic>> _drinks_db = {
     'Small beer (330ml)':       {'ml': 330.0, 'abv': 0.05},
     'Medium beer (500ml)':      {'ml': 500.0, 'abv': 0.05},
@@ -39,48 +69,69 @@ class _SessionScreenState extends State<SessionScreen> {
     'Negroni':                  {'ml': 100.0, 'abv': 0.25},
     'Shot (40ml)':              {'ml': 40.0,  'abv': 0.40},
   };
- 
+
   @override
   void initState() {
     super.initState();
+    _storicoProv = Provider.of<StoricoProvider>(context, listen: false);
     final user = Provider.of<UserProvider>(context, listen: false);
     if (user.livelloStress == 'high') {
-      _orangeThreshold = 0.3;
+      // Con stress alto teniamo l'arancione al limite legale (0.5) e
+      // anticipiamo solo la soglia rossa (1.2): così il messaggio
+      // "hai superato il limite legale" resta corretto, e l'app diventa
+      // più prudente solo sulla zona di pericolo.
       _redThreshold = 1.2;
     }
     _timer = Timer.periodic(Duration(minutes: 1), (_) => _calculateBAC());
   }
- 
+
   @override
   void dispose() {
     _timer?.cancel();
+    // Rete di sicurezza: se la serata viene chiusa di colpo, salva comunque
+    // il picco (idempotente, quindi innocuo se è già stato registrato).
+    if (_peakBAC > 0) {
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
     super.dispose();
   }
- 
+
   // Formula di Widmark: BAC = (grammi alcol / (weight × r)) - (0.15 × ore)
   void _calculateBAC() {
     final user = Provider.of<UserProvider>(context, listen: false);
     final hoursElapsed = DateTime.now().difference(_sessionStart).inMinutes / 60;
- 
+
     // Fattore r di Widmark: 0.68 per M, 0.55 per F
     final r = (user.gender?.toUpperCase() == 'M') ? 0.68 : 0.55;
     final w = user.weight ?? 70.0;
- 
+
     // 0.789 = densità dell'alcol etilico in g/ml
     double totalGrams = 0;
     for (final drink in _drinks) {
       totalGrams += drink['ml'] * drink['abv'] * 0.789;
     }
- 
+
+    // Applica l'attenuazione dovuta al cibo prima di calcolare il BAC.
+    totalGrams *= _foodFactor;
+
     if (totalGrams == 0) {
       setState(() => _currentBAC = 0);
       return;
     }
- 
+
     double bac = (totalGrams / (w * r)) - (0.15 * hoursElapsed);
-    setState(() => _currentBAC = bac < 0 ? 0 : bac);
+    final nuovoBac = bac < 0 ? 0.0 : bac;
+    setState(() => _currentBAC = nuovoBac);
+
+    // Aggiorna il picco e lo registra SUBITO nello storico: così anche una
+    // serata che finisce in rosso (dove non c'è il pulsante END THE NIGHT)
+    // viene salvata, nel momento esatto in cui tocca il picco.
+    if (nuovoBac > _peakBAC) {
+      _peakBAC = nuovoBac;
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
   }
- 
+
   void _addDrink() {
     final drink = _drinks_db[_selectedDrink]!;
     setState(() {
@@ -96,13 +147,13 @@ class _SessionScreenState extends State<SessionScreen> {
     });
     _calculateBAC();
   }
- 
+
   String get _level {
     if (_currentBAC < _orangeThreshold) return 'green';
     if (_currentBAC < _redThreshold) return 'orange';
     return 'red';
   }
- 
+
   String get _timeToSafe {
     if (_currentBAC <= _orangeThreshold) return 'You\'re in the safe zone';
     final hoursLeft = (_currentBAC - _orangeThreshold) / 0.15;
@@ -110,10 +161,10 @@ class _SessionScreenState extends State<SessionScreen> {
     final minutes = ((hoursLeft - hours) * 60).round();
     return 'Safe zone in ${hours}h ${minutes}min';
   }
- 
+
   Future<void> _callForHelp() async {
     final user = Provider.of<UserProvider>(context, listen: false);
- 
+
     if (user.telefonoContatto == null || user.nomeContatto == null) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
@@ -122,50 +173,102 @@ class _SessionScreenState extends State<SessionScreen> {
         ));
       return;
     }
- 
+
     setState(() => _callingForHelp = true);
- 
+
     String locationLink = 'Location unavailable';
     try {
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 5),
-      );
-      locationLink = 'https://maps.google.com/?q=${position.latitude},${position.longitude}';
+      // Verifica che i servizi di localizzazione siano attivi e il permesso ok.
+      // (Se hai svuotato i dati dell'app, il permesso è stato resettato.)
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final permessoOk = permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+
+      if (serviceEnabled && permessoOk) {
+        // Prima un fix già in cache: immediato e spesso sufficiente.
+        Position? position = await Geolocator.getLastKnownPosition();
+        // Se manca, ne chiede uno nuovo con più tempo (il GPS a freddo è lento).
+        position ??= await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 15),
+          ),
+        );
+        locationLink =
+            'https://maps.google.com/?q=${position.latitude},${position.longitude}';
+      }
     } catch (e) {
       locationLink = 'Location unavailable';
     }
- 
-    final message = Uri.encodeComponent(
-      'Hi ${user.nomeContatto}, I\'m ${user.name}.\n\n'
-      'I\'ve had too much to drink and need help.\n'
-      'Can you come pick me up? I\'m here:\n'
-      '$locationLink\n\n'
-      '- Sent automatically by BuzzedBuddy',
-    );
- 
-    final smsUri = Uri.parse('sms:${user.telefonoContatto}?body=$message');
- 
-    if (await canLaunchUrl(smsUri)) {
-      await launchUrl(smsUri);
-    } else {
+
+    final messageText =
+        'Hi ${user.nomeContatto}, I\'m ${user.name}.\n\n'
+        'I\'ve had too much to drink and need help.\n'
+        'Can you come pick me up? I\'m here:\n'
+        '$locationLink\n\n'
+        '- Sent automatically by BuzzedBuddy';
+
+    try {
+      if (Platform.isAndroid) {
+        // Android: apre DIRETTAMENTE l'app SMS predefinita, niente selettore.
+        // Il testo va passato grezzo (non url-encoded) al canale nativo.
+        await _smsChannel.invokeMethod('sendSmsViaDefaultApp', {
+          'number': user.telefonoContatto,
+          'body': messageText,
+        });
+      } else {
+        // iOS e altri: schema sms:, che su iOS apre Messaggi direttamente.
+        final smsUri = Uri.parse(
+            'sms:${user.telefonoContatto}?body=${Uri.encodeComponent(messageText)}');
+        await launchUrl(smsUri);
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text('Could not open SMS app')));
       }
     }
- 
+
     if (mounted) setState(() => _callingForHelp = false);
   }
- 
+
   @override
   Widget build(BuildContext context) {
     if (_level == 'red') return _buildRedLayout();
     if (_level == 'orange') return _buildOrangeLayout();
     return _buildGreenLayout();
   }
- 
+
+  // Chiude la serata e torna alla Home. Il salvataggio è già avvenuto in
+  // automatico durante la serata; qui lo richiamiamo per sicurezza (idempotente).
+  void _endNight() {
+    if (_peakBAC > 0) {
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
+    Navigator.pop(context);
+  }
+
+  // Pulsante "fine serata", mostrato solo nei layout verde e arancione.
+  Widget _buildEndButton() {
+    return ElevatedButton.icon(
+      onPressed: _endNight,
+      icon: Icon(Icons.nightlight_round),
+      label: Text('END THE NIGHT',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: Color.fromARGB(255, 255, 196, 0),
+        minimumSize: Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Widget _buildGreenLayout() {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
@@ -184,17 +287,19 @@ class _SessionScreenState extends State<SessionScreen> {
             SizedBox(height: 20),
             _buildDrinkList(),
             SizedBox(height: 20),
+            _buildEndButton(),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
- 
+
   Widget _buildOrangeLayout() {
     final hoursLeft = _currentBAC > _orangeThreshold
         ? (_currentBAC - _orangeThreshold) / 0.15
         : 0.0;
- 
+
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
@@ -246,12 +351,14 @@ class _SessionScreenState extends State<SessionScreen> {
             SizedBox(height: 16),
             _buildDrinkList(),
             SizedBox(height: 20),
+            _buildEndButton(),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
- 
+
   Widget _buildRedLayout() {
     return Scaffold(
       backgroundColor: Colors.red.shade900,
@@ -322,11 +429,11 @@ class _SessionScreenState extends State<SessionScreen> {
       ),
     );
   }
- 
+
   Widget _buildBacCard() {
     Color cardColor = _level == 'green' ? Colors.green.shade100 : Colors.orange.shade100;
     Color barColor = _level == 'green' ? Colors.green : Colors.orange;
- 
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20),
@@ -358,7 +465,7 @@ class _SessionScreenState extends State<SessionScreen> {
       ),
     );
   }
- 
+
   Widget _buildDrinkInput() {
     return Container(
       padding: EdgeInsets.all(16),
@@ -410,7 +517,7 @@ class _SessionScreenState extends State<SessionScreen> {
       ),
     );
   }
- 
+
   Widget _buildDrinkList() {
     if (_drinks.isEmpty) {
       return Center(
