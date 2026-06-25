@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // 'nomeContatto'      → per l'emergenza
 // 'telefonoContatto'  → idem
 // 'livelloStress'     → nel nome, deciderà se viene applicato il coefficiente o meno 
+// aggiungi isMinor, per quello di cui abbiamo parlato su WA
 
  
 class UserProvider extends ChangeNotifier {
