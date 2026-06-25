@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/screens/loginf_page.dart';
+import 'package:buzzed_buddy/providers/storico_provider.dart';
 import 'package:buzzed_buddy/screens/splash_page.dart';
  
 void main() async {
@@ -11,8 +11,11 @@ void main() async {
   await initializeDateFormatting('en_GB', null);
   Intl.defaultLocale = 'en_GB';
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => UserProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => StoricoProvider()),
+      ],
       child: MyApp(),
     ),
   );
@@ -55,7 +58,9 @@ class _AppEntryState extends State<AppEntry> {
  
   Future<void> _init() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
     await userProvider.loadFromSharedPreferences();
+    await storicoProvider.caricaStorico();
     setState(() => _loading = false);
   }
  
@@ -67,9 +72,10 @@ class _AppEntryState extends State<AppEntry> {
         body: Center(child: CircularProgressIndicator(color: Colors.black)),
       );
     }
-    final user = Provider.of<UserProvider>(context);
-    // Loggato → SplashScreen (logo + LET'S GO → HomePage)
-    // Non loggato → LoginScreen (con pulsante SIGN UP)
-    return user.isUserLogged ? SplashScreen() : LoginScreen();
+    // La SplashScreen è SEMPRE la prima schermata e si adatta da sola:
+    //  - Ha un account  → "Welcome back, username!" + LET'S GO → HomePage
+    //                     (nessun login: l'app ti ricorda)
+    //  - Nuovo utente   → "BuzzedBuddy" + SIGN UP → registrazione
+    return SplashScreen();
   }
 }
