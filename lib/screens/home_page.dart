@@ -4,22 +4,22 @@ import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/calendar_page.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
 import 'package:buzzed_buddy/screens/settings_page.dart';
-import 'package:buzzed_buddy/screens/session_page.dart';
- 
+import 'package:buzzed_buddy/screens/pre_session_page.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
- 
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
- 
+
 class _HomePageState extends State<HomePage> {
- 
+
   @override
   Widget build(BuildContext context) {
-    // Legge l'username dal Provider, si aggiorna automaticamente se cambia
+    // Legge l'username dal Provider — si aggiorna automaticamente se cambia
     final user = Provider.of<UserProvider>(context);
- 
+
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => SessionScreen()),
+                    MaterialPageRoute(builder: (_) => PreSessionScreen()),
                   );
                 },
                 child: Text(
@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
- 
+
   void _logout(BuildContext context) async {
     final user = Provider.of<UserProvider>(context, listen: false);
     await user.logout();
@@ -111,5 +111,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
- 
- 
