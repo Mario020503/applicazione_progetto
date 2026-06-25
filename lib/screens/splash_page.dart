@@ -44,7 +44,7 @@ class SplashScreen extends StatelessWidget {
               onPressed: () {
                 if (user.username != null) {
                   // LET'S GO → HomePage (con drawer per Calendar e Settings)
-                  // TODO: inserire HRVScreen prima di HomePage quando pronta
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => HomePage()),
