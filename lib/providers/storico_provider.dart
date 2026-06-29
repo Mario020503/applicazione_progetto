@@ -19,6 +19,7 @@ class StoricoProvider extends ChangeNotifier {
 
   // data ('yyyy-MM-dd'), salva il picco BAC di quella serata
   Map<String, double> _storico = {};
+  String? _activeUsername; 
 
   // Espone una copia in sola lettura, in modo che il calendario la legga e non la tocchi
   Map<String, double> get storico => Map.unmodifiable(_storico);
@@ -30,10 +31,28 @@ class StoricoProvider extends ChangeNotifier {
     return '${data.year}-$m-$g';
   }
 
-  // Carica il diario da SharedPreferences (da chiamare all'avvio dell'app)
-  Future<void> caricaStorico() async {
+   String _prefsKeyForAccount(String accountId) =>
+      'storicoBevute_${Uri.encodeComponent(accountId)}';
+
+  // Carica il diario dell'account corrente da SharedPreferences.
+  Future<void> loadForAccount(String? accountId) async {
+    _activeUsername = accountId;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_prefsKey);
+    if (accountId == null || accountId.isEmpty) {
+      _storico = {};
+      notifyListeners();
+      return;
+    }
+
+    final userKey = _prefsKeyForAccount(accountId);
+    final raw = prefs.getString(userKey);
+
+    // Lo storico legacy globale non va mai riutilizzato per un account nuovo:
+    // se esiste ancora, lo ignoriamo e lo eliminiamo per evitare leakage.
+    if (prefs.containsKey(_legacyPrefsKey)) {
+      await prefs.remove(_legacyPrefsKey);
+    }
+
     if (raw == null || raw.isEmpty) {
       _storico = {};
     } else {
@@ -42,6 +61,13 @@ class StoricoProvider extends ChangeNotifier {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       _storico = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
     }
+
+    notifyListeners();
+  }
+
+  Future<void> clear() async {
+    _activeUsername = null;
+    _storico = {};
     notifyListeners();
   }
 

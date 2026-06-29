@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/providers/storico_provider.dart';
 import 'package:buzzed_buddy/screens/splash_page.dart';
 import 'package:buzzed_buddy/screens/registerf_page.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
  
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,11 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
  
-  Future<String> _getPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('password') ?? '';
-  }
- 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
         title: Text("Welcome back!"),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: Center(
         child: Column(
@@ -82,21 +79,25 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               onPressed: () async {
                 final userProvider = Provider.of<UserProvider>(context, listen: false);
-                final savedPassword = await _getPassword();
+                final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                final username = usernameController.text.trim();
+                final password = passwordController.text;
  
-                if (usernameController.text == userProvider.username &&
-                    passwordController.text == savedPassword) {
-                  await userProvider.login();
+                final authenticated = await userProvider.authenticate(username, password);
+
+                if (authenticated) {
+                  await storicoProvider.loadForAccount(userProvider.accountId);
                   if (!mounted) return;
-                  Navigator.pushReplacement(
-                    context,
+                  navigator.pushReplacement(
                     MaterialPageRoute(builder: (_) => SplashScreen()),
                   );
                 } else {
-                  ScaffoldMessenger.of(context)
+                  messenger
                     ..removeCurrentSnackBar()
                     ..showSnackBar(
-                      SnackBar(content: Text('Incorrect username or password')),
+                      const SnackBar(content: Text('Incorrect username or password')),
                     );
                 }
               },

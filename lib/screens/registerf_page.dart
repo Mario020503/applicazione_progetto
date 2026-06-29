@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
  
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,10 +18,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
-  final TextEditingController genderController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool termsAccepted = false;
+  String? selectedGender;
  
   void _showTerms(BuildContext context) {
     showDialog(
@@ -78,6 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: Text("Create your account"),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -88,7 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _field(nameController, 'Full name', 'Enter your real name'),
               _field(usernameController, 'Username', 'Choose a username'),
               _field(weightController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
-              _field(genderController, 'Sex', 'M or F'),
+              _genderSelector(),
               _field(passwordController, 'Password', 'Choose a password', obscure: true),
               _field(confirmPasswordController, 'Confirm password', 'Repeat your password', obscure: true),
  
@@ -142,7 +144,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (nameController.text.isEmpty ||
                       usernameController.text.isEmpty ||
                       weightController.text.isEmpty ||
-                      genderController.text.isEmpty ||
                       passwordController.text.isEmpty ||
                       confirmPasswordController.text.isEmpty) {
                     ScaffoldMessenger.of(context)
@@ -156,11 +157,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ..showSnackBar(SnackBar(content: Text('Passwords do not match')));
                     return;
                   }
-                  final sesso = genderController.text.toUpperCase();
-                  if (sesso != 'M' && sesso != 'F') {
+                  final sesso = selectedGender;
+                  if (sesso == null) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('Sex must be M or F')));
+                      ..showSnackBar(SnackBar(content: Text('Please select M or F')));
                     return;
                   }
                   if (!termsAccepted) {
@@ -227,6 +228,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
           labelText: label,
           hintText: hint,
         ),
+      ),
+    );
+  }
+
+  Widget _genderSelector() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: DropdownButtonFormField<String>(
+        initialValue: selectedGender,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(),
+          labelText: 'Sex',
+          hintText: 'Choose M or F',
+        ),
+        items: const [
+          DropdownMenuItem(value: 'M', child: Text('M')),
+          DropdownMenuItem(value: 'F', child: Text('F')),
+        ],
+        onChanged: (value) => setState(() => selectedGender = value),
       ),
     );
   }

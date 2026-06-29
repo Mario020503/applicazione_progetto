@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 // Quanto ha mangiato l'utente prima della serata.
 // Scelto in PreSessionScreen, attiva il coefficiente di attenuazione del BAC.
@@ -273,6 +275,7 @@ class _SessionScreenState extends State<SessionScreen> {
         title: Text('Tonight'),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -303,6 +306,7 @@ class _SessionScreenState extends State<SessionScreen> {
         title: Text('Tonight'),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),

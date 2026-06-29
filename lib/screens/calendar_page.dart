@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -28,8 +29,9 @@ class _CalendarPageState extends State<CalendarPage> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: const Text('Calendario'),
+        title: const Text('Calendar'),
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        actions: const [SmallAppLogo()],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -277,5 +279,4 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 }
-
 

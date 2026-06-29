@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/providers/storico_provider.dart';
 import 'package:buzzed_buddy/screens/calendar_page.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
 import 'package:buzzed_buddy/screens/settings_page.dart';
 import 'package:buzzed_buddy/screens/pre_session_page.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +27,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text('Home'),
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        actions: const [SmallAppLogo()],
       ),
       body: Center(
         child: Column(
@@ -103,6 +106,8 @@ class _HomePageState extends State<HomePage> {
 
   void _logout(BuildContext context) async {
     final user = Provider.of<UserProvider>(context, listen: false);
+    final storico = Provider.of<StoricoProvider>(context, listen: false);
+    await storico.clear();
     await user.logout();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

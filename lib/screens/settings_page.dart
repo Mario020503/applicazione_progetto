@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
  
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -67,6 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
       name: nameController.text,
       gender: gender,
       weight: double.parse(weightController.text),
+      setAsCurrentUser: true,
     );
  
     _showSnackBar('Saved successfully!');
@@ -85,6 +87,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: const Text("Profile Settings"),
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        actions: const [SmallAppLogo()],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.black))

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/session_page.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 // ============================================================
 // PRE-SESSION SCREEN — Schermata prima dell'inizio della serata.
@@ -59,6 +60,33 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
       return;
     }
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'READ CAREFULLY',
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text('Confirm that you have entered a valid emergency contact. This contact will be deleted after the session.\n\nPlease, if you are UNDER 18, do NOT drink alcohol, because the effects of alcohol on your body are more dangerous at your age: it causes permanent damage to your brain and liver, and can lead to addiction.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('I confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    if (!mounted) return;
+
     // Salva il contatto di emergenza nel Provider / SharedPreferences
     final user = Provider.of<UserProvider>(context, listen: false);
     await user.saveEmergencyContact(nome: nome, telefono: telefono);
@@ -90,6 +118,7 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
         title: const Text('Before you start'),
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
