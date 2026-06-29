@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +12,7 @@ import 'package:buzzed_buddy/providers/storico_provider.dart';
 enum LivelloCibo { niente, spuntino, pasto }
 
 class SessionScreen extends StatefulWidget {
-  // Livello cibo della serata corrente, passato da PreSessionScreen.
+  // Livello cibo della serata corrente — passato da PreSessionScreen.
   final LivelloCibo livelloCibo;
   const SessionScreen({super.key, required this.livelloCibo});
 
@@ -213,9 +212,7 @@ class _SessionScreenState extends State<SessionScreen> {
         '- Sent automatically by BuzzedBuddy';
 
     try {
-      if (Platform.isAndroid) {
-        // Android: apre DIRETTAMENTE l'app SMS predefinita, niente selettore.
-        // Il testo va passato grezzo (non url-encoded) al canale nativo.
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         await _smsChannel.invokeMethod('sendSmsViaDefaultApp', {
           'number': user.telefonoContatto,
           'body': messageText,
@@ -333,7 +330,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   Expanded(
                     child: Text(
                       hoursLeft > 1
-                          ? 'You\'ve exceeded the legal driving limit.\nConsider stopping — it\'ll take over an hour to reach the safe zone.'
+                          ? 'You\'ve exceeded the legal driving limit.\nConsider stopping, it\'ll take over an hour to reach the safe zone.'
                           : 'You\'ve exceeded the legal driving limit.\nYou\'re above the safe driving threshold.',
                       style: TextStyle(
                         fontSize: 14,
