@@ -4,6 +4,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
+// IMPORTANTE: Aggiungi l'import del tuo nuovo DataProvider
+import 'package:buzzed_buddy/providers/data_provider.dart'; 
 import 'package:buzzed_buddy/screens/splash_page.dart';
  
 void main() async {
@@ -15,8 +17,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => StoricoProvider()),
+        // IMPORTANTE: Inietta qui il DataProvider così che sia accessibile in tutta l'app
+        ChangeNotifierProvider(create: (_) => DataProvider()), 
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -31,11 +35,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255, 255, 196, 0),
+          seedColor: const Color.fromARGB(255, 255, 196, 0),
         ),
         useMaterial3: true,
       ),
-      home: AppEntry(),
+      home: const AppEntry(),
     );
   }
 }
@@ -60,22 +64,18 @@ class _AppEntryState extends State<AppEntry> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
     await userProvider.loadFromSharedPreferences();
-    await storicoProvider.caricaStorico();
+    //await storicoProvider.caricaStorico();
     setState(() => _loading = false);
   }
  
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Color.fromARGB(255, 255, 196, 0),
         body: Center(child: CircularProgressIndicator(color: Colors.black)),
       );
     }
-    // La SplashScreen è SEMPRE la prima schermata e si adatta da sola:
-    //  - Ha un account  → "Welcome back, username!" + LET'S GO → HomePage
-    //                     (nessun login: l'app ti ricorda)
-    //  - Nuovo utente   → "BuzzedBuddy" + SIGN UP → registrazione
-    return SplashScreen();
+    return const SplashScreen();
   }
 }

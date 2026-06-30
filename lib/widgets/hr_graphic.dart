@@ -3,7 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/models/heart_rate.dart';
 
-
 class HrPoint {
   const HrPoint({required this.time, required this.value});
 
@@ -17,7 +16,7 @@ class HrPlot extends StatelessWidget {
     required this.points,
     required this.lineColor,
     required this.emptyMessage,
-    this.valueDecimals = 2,
+    this.valueDecimals = 0,
   });
 
   final List<HrPoint> points;
@@ -28,11 +27,10 @@ class HrPlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (points.isEmpty) {
-      return Center(child: Text(emptyMessage));
+      return Center(child: Text(emptyMessage, style: const TextStyle(fontWeight: FontWeight.w500)));
     }
 
-    final sortedPoints = [...points]
-      ..sort((a, b) => a.time.compareTo(b.time));
+    final sortedPoints = [...points]..sort((a, b) => a.time.compareTo(b.time));
     final firstTimestamp = sortedPoints.first.time;
 
     final spots = sortedPoints
@@ -44,61 +42,70 @@ class HrPlot extends StatelessWidget {
         )
         .toList();
 
-    final minY = sortedPoints
-        .map((e) => e.value)
-        .reduce((a, b) => a < b ? a : b);
-    final maxY = sortedPoints
-        .map((e) => e.value)
-        .reduce((a, b) => a > b ? a : b);
-    final yRange = (maxY - minY).abs();
-    final yPadding = yRange < 0.01 ? 10.0 : yRange * 0.15;
+    double minY = 20;
+    double maxY = 120;
+    double yInterval = 25; 
 
     final xMax = spots.last.x;
-    final tickCount = spots.length < 5 ? spots.length : 5;
-    final xInterval = tickCount <= 1 || xMax <= 0
-        ? 1.0
-        : xMax / (tickCount - 1);
-    final yInterval = yRange < 0.01 ? 5.0 : (yRange/4);
+    final xInterval = xMax <= 0 ? 60.0 : xMax / 4; 
 
     return LineChart(
       LineChartData(
         minX: 0,
         maxX: xMax == 0 ? 1 : xMax,
-        minY: (minY - yPadding)< 0 ? 0 : minY - yPadding,
-        maxY: maxY + yPadding,
+        minY: minY,
+        maxY: maxY,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
           horizontalInterval: yInterval,
           verticalInterval: xInterval,
+          getDrawingHorizontalLine: (value) => const FlLine(color: Colors.black12, strokeWidth: 1),
+          getDrawingVerticalLine: (value) => const FlLine(color: Colors.black12, strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          
+          // ASSE SINISTRO TRADOTTO
           leftTitles: AxisTitles(
+            axisNameWidget: const Text(
+              "HRV (ms)", 
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)
+            ),
+            axisNameSize: 18,
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 42,
+              reservedSize: 32,
               interval: yInterval,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toStringAsFixed(0),
+                  style: const TextStyle(fontSize: 10, color: Colors.black87),
+                  textAlign: TextAlign.center,
+                );
+              },
             ),
           ),
+          
+          // ASSE IN BASSO TRADOTTO
           bottomTitles: AxisTitles(
+            axisNameWidget: const Text(
+              "Time (Hours)", // Tradotto
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)
+            ),
+            axisNameSize: 16,
             sideTitles: SideTitles(
               showTitles: true,
               interval: xInterval,
               getTitlesWidget: (value, meta) {
-                final date = firstTimestamp.add(
-                  Duration(minutes: value.round()),
-                );
+                final date = firstTimestamp.add(Duration(minutes: value.round()));
                 return SideTitleWidget(
                   meta: meta,
+                  space: 4,
                   child: Text(
                     DateFormat('HH:mm').format(date),
-                    style: const TextStyle(fontSize: 10),
+                    style: const TextStyle(fontSize: 10, color: Colors.black87),
                   ),
                 );
               },
@@ -108,8 +115,8 @@ class HrPlot extends StatelessWidget {
         borderData: FlBorderData(
           show: true,
           border: const Border(
-            left: BorderSide(color: Colors.black12),
-            bottom: BorderSide(color: Colors.black12),
+            left: BorderSide(color: Colors.black26),
+            bottom: BorderSide(color: Colors.black26),
             right: BorderSide.none,
             top: BorderSide.none,
           ),
@@ -119,12 +126,10 @@ class HrPlot extends StatelessWidget {
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
-                final ts = firstTimestamp.add(
-                  Duration(minutes: spot.x.round()),
-                );
+                final ts = firstTimestamp.add(Duration(minutes: spot.x.round()));
                 return LineTooltipItem(
-                  '${DateFormat('HH:mm').format(ts)}\n${spot.y.toStringAsFixed(valueDecimals)}',
-                  const TextStyle(color: Colors.white),
+                  '${DateFormat('HH:mm').format(ts)}\n${spot.y.toStringAsFixed(0)} ms',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 );
               }).toList();
             },
@@ -134,17 +139,17 @@ class HrPlot extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            barWidth: 2,
+            barWidth: 2.5, 
             color: lineColor,
-            dotData: const FlDotData(show: false),
+            dotData: const FlDotData(show: false), 
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  lineColor.withValues(alpha: 0.45),
-                  lineColor.withValues(alpha: 0.0),
+                  lineColor.withOpacity(0.35),
+                  lineColor.withOpacity(0.0),
                 ],
               ),
             ),
@@ -154,18 +159,6 @@ class HrPlot extends StatelessWidget {
     );
   }
 }
-
-List<HrPoint> filterPointsByDay({
-  required List<HrPoint> points,
-  required DateTime selectedDate,
-}) {
-  return points.where((e) {
-    return e.time.year == selectedDate.year &&
-        e.time.month == selectedDate.month &&
-        e.time.day == selectedDate.day;
-  }).toList();
-}
-
 
 class CustomPlotHR extends StatelessWidget {
   const CustomPlotHR({
@@ -179,22 +172,22 @@ class CustomPlotHR extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final points = filterPointsByDay(
-      points: hrData
-          .map(
-            (e) => HrPoint(
-              time: e.time,
-              value: e.value.toDouble(),
-            ),
-          )
-          .toList(),
-      selectedDate: selectedDate,
-    );
+    final String targetDateStr = selectedDate.toString().split(' ')[0];
+
+    final points = hrData
+        .where((e) => e.time.toString().startsWith(targetDateStr))
+        .map(
+          (e) => HrPoint(
+            time: e.time,
+            value: e.value.toDouble(),
+          ),
+        )
+        .toList();
 
     return HrPlot(
       points: points,
       lineColor: const Color(0xFF89453C),
-      emptyMessage: 'No heart rate data available',
+      emptyMessage: 'No HRV data available for this day', // Tradotto
       valueDecimals: 0,
     );
   }
