@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // La registrazione è automatica: SessionScreen chiama salvaSerata()
 // ogni volta che il BAC tocca un nuovo picco.
 class StoricoProvider extends ChangeNotifier {
+  static const String _legacyPrefsKey = 'storico_key';
 
   // Chiave SharedPreferences dove vive il diario in formato JSON
   static const String _prefsKey = 'storicoBevute';
