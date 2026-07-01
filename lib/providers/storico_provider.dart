@@ -2,21 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Tiene una mappa  data → picco BAC di quella sera, salvata in
-// SharedPreferences come stringa JSON sotto la chiave 'storicoBevute'.
-//
-// A cosa serve:
-//   - colorare il calendario in base alla gravità della serata
-//   - alimentare i suggerimenti della home (hai bevuto ieri?
-//     quanti giorni puliti di fila?)
-//
-// La registrazione è automatica: SessionScreen chiama salvaSerata()
-// ogni volta che il BAC tocca un nuovo picco.
+// Tiene una mappa data → picco BAC di quella sera, salvata in
+// SharedPreferences come stringa JSON in modo isolato per account.
 class StoricoProvider extends ChangeNotifier {
   static const String _legacyPrefsKey = 'storico_key';
-
-  // Chiave SharedPreferences dove vive il diario in formato JSON
-  static const String _prefsKey = 'storicoBevute';
 
   // data ('yyyy-MM-dd'), salva il picco BAC di quella serata
   Map<String, double> _storico = {};
@@ -32,13 +21,15 @@ class StoricoProvider extends ChangeNotifier {
     return '${data.year}-$m-$g';
   }
 
-   String _prefsKeyForAccount(String accountId) =>
+  // Genera la chiave univoca per il singolo utente
+  String _prefsKeyForAccount(String accountId) =>
       'storicoBevute_${Uri.encodeComponent(accountId)}';
 
   // Carica il diario dell'account corrente da SharedPreferences.
   Future<void> loadForAccount(String? accountId) async {
     _activeUsername = accountId;
     final prefs = await SharedPreferences.getInstance();
+    
     if (accountId == null || accountId.isEmpty) {
       _storico = {};
       notifyListeners();
@@ -48,8 +39,7 @@ class StoricoProvider extends ChangeNotifier {
     final userKey = _prefsKeyForAccount(accountId);
     final raw = prefs.getString(userKey);
 
-    // Lo storico legacy globale non va mai riutilizzato per un account nuovo:
-    // se esiste ancora, lo ignoriamo e lo eliminiamo per evitare leakage.
+    // Eliminazione della vecchia chiave globale legacy se presente
     if (prefs.containsKey(_legacyPrefsKey)) {
       await prefs.remove(_legacyPrefsKey);
     }
@@ -57,12 +47,11 @@ class StoricoProvider extends ChangeNotifier {
     if (raw == null || raw.isEmpty) {
       _storico = {};
     } else {
-      // jsonDecode restituisce Map<String, dynamic>:
-      // riconvertiamo ogni valore in double
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       _storico = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
     }
 
+    print("StoricoProvider: Dati caricati per l'utente $_activeUsername. Serate registrate: ${_storico.length}");
     notifyListeners();
   }
 
@@ -72,23 +61,27 @@ class StoricoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Salva il picco BAC di una serata.
-  // Idempotente: tiene sempre il valore più alto per quella data, quindi
-  // richiamarlo più volte la stessa sera non crea doppioni né regressioni.
+  // Salva il picco BAC di una serata in modo ISOLATO per l'utente attivo.
   Future<void> salvaSerata(DateTime data, double bac) async {
     if (bac <= 0) return;                 // niente da registrare se non si è bevuto
+    if (_activeUsername == null || _activeUsername!.isEmpty) return; // Sicurezza
+
     final k = _chiave(data);
     final attuale = _storico[k] ?? 0;
     if (bac <= attuale) return;           // già salvato un picco uguale o maggiore
 
     _storico[k] = bac;
+    
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, jsonEncode(_storico));
+    // CORRETTO: Salviamo usando la chiave specifica dell'account attivo!
+    final userKey = _prefsKeyForAccount(_activeUsername!);
+    await prefs.setString(userKey, jsonEncode(_storico));
+    
+    print("StoricoProvider: Salvata serata per $_activeUsername su chiave $userKey");
     notifyListeners();
   }
 
   // Picco BAC di una certa data, o null se quel giorno non si è bevuto.
-  // Usato dal calendario per scegliere il colore della cella.
   double? bacDelGiorno(DateTime data) => _storico[_chiave(data)];
 
   // True se IERI risulta una serata con alcol 
@@ -98,15 +91,13 @@ class StoricoProvider extends ChangeNotifier {
   }
 
   // Giorni consecutivi senza bere, contati a ritroso partendo da ieri.
-  // Oggi è escluso di proposito: la serata di oggi potrebbe non essere
-  // ancora cominciata
   int get giorniPuliti {
     int conta = 0;
     var giorno = DateTime.now().subtract(const Duration(days: 1));
     while (!_storico.containsKey(_chiave(giorno))) {
       conta++;
       giorno = giorno.subtract(const Duration(days: 1));
-      if (conta > 365) break;             // tetto di sicurezza, evita loop infiniti
+      if (conta > 365) break; 
     }
     return conta;
   }

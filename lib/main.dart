@@ -4,7 +4,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
-// IMPORTANTE: Aggiungi l'import del tuo nuovo DataProvider
 import 'package:buzzed_buddy/providers/data_provider.dart'; 
 import 'package:buzzed_buddy/screens/splash_page.dart';
  
@@ -17,7 +16,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => StoricoProvider()),
-        // IMPORTANTE: Inietta qui il DataProvider così che sia accessibile in tutta l'app
         ChangeNotifierProvider(create: (_) => DataProvider()), 
       ],
       child: const MyApp(),
@@ -44,7 +42,6 @@ class MyApp extends StatelessWidget {
   }
 }
  
-// Widget separato per usare il Provider dopo la sua creazione
 class AppEntry extends StatefulWidget {
   const AppEntry({super.key});
   @override
@@ -63,8 +60,19 @@ class _AppEntryState extends State<AppEntry> {
   Future<void> _init() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
+    
+    // 1. Carica lo stato dell'utente salvato localmente
     await userProvider.loadFromSharedPreferences();
-    //await storicoProvider.caricaStorico();
+    
+    // 2. MODIFICA DI SICUREZZA: Se c'è un utente loggato, carica il suo specifico accountId
+    if (userProvider.accountId != null && userProvider.accountId!.isNotEmpty) {
+      await storicoProvider.loadForAccount(userProvider.accountId);
+    } else {
+      // Se non c'è nessuno, assicurati che la RAM sia pulita e pronta
+      await storicoProvider.clear();
+    }
+    
+    if (!mounted) return;
     setState(() => _loading = false);
   }
  

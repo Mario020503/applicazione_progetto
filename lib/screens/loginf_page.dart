@@ -22,10 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 196, 0),
+      backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: Text("Welcome back!"),
-        backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        title: const Text("Welcome back!"),
+        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
         actions: const [SmallAppLogo()],
       ),
@@ -35,10 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
  
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: TextField(
                 controller: usernameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(),
@@ -48,15 +48,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
  
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
  
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: TextField(
                 obscureText: true,
                 controller: passwordController,
                 inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(),
@@ -66,13 +66,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
  
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
  
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                foregroundColor: Color.fromARGB(255, 255, 196, 0),
-                minimumSize: Size(250, 55),
+                foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                minimumSize: const Size(250, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -85,15 +85,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 final username = usernameController.text.trim();
                 final password = passwordController.text;
  
+                // MODIFICA DI SICUREZZA: Pulisce preventivamente lo storico in memoria RAM 
+                // per evitare che tracce del vecchio utente rimangano visibili se il login fallisce.
+                await storicoProvider.clear();
+
                 final authenticated = await userProvider.authenticate(username, password);
 
                 if (authenticated) {
+                  // Carica il diario specifico usando l'accountId appena validato (ritorna la stringa privata)
                   await storicoProvider.loadForAccount(userProvider.accountId);
-                  if (!mounted) return;
+                  if (!navigator.mounted) return;
                   navigator.pushReplacement(
-                    MaterialPageRoute(builder: (_) => SplashScreen()),
+                    MaterialPageRoute(builder: (_) => const SplashScreen()),
                   );
                 } else {
+                  // Se l'autenticazione fallisce, ci assicuriamo che lo storico rimanga blindato e vuoto
+                  await storicoProvider.clear();
+                  
                   messenger
                     ..removeCurrentSnackBar()
                     ..showSnackBar(
@@ -101,19 +109,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                 }
               },
-              child: Text(
+              child: const Text(
                 'LOG IN',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
  
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
  
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                foregroundColor: Color.fromARGB(255, 255, 196, 0),
-                minimumSize: Size(250, 55),
+                foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                minimumSize: const Size(250, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -121,10 +129,10 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => RegisterScreen()),
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 );
               },
-              child: Text(
+              child: const Text(
                 'SIGN UP',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
