@@ -26,7 +26,8 @@ class _HomePageState extends State<HomePage> {
     "2026-06-26",
     "2026-06-27",
     "2026-06-28",
-    "2026-06-30"
+    "2026-06-30", 
+    "2026-07-01",
   ];
 
   @override

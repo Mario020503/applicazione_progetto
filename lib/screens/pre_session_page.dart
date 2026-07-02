@@ -7,13 +7,6 @@ import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 // ============================================================
 // PRE-SESSION SCREEN — Schermata prima dell'inizio della serata.
-// Raccoglie due cose, da reinserire OGNI volta (non precompilate,
-// perché chi è disponibile ad aiutarti cambia da una sera all'altra):
-//
-//   1. Contatto di emergenza (nome + telefono) → salvato nel Provider,
-//      usato dal pulsante CALL FOR HELP nel layout rosso di SessionScreen.
-//   2. Quanto hai mangiato → passato a SessionScreen come LivelloCibo,
-//      attiva il coefficiente di attenuazione del BAC.
 // ============================================================
 
 class PreSessionScreen extends StatefulWidget {
@@ -32,8 +25,26 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
   LivelloCibo? _livelloCibo;
 
   @override
+  void initState() {
+    super.initState();
+    // CONTROLLO DI SICUREZZA PER SINO-CORSO DELLA SERATA
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      // Se ci sono già dei drink registrati sul telefono, salta tutto!
+      if (userProvider.currentSessionDrinks.isNotEmpty) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SessionScreen(livelloCibo: LivelloCibo.niente),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
   void dispose() {
-    // Libera i controller quando la schermata viene chiusa
     nomeController.dispose();
     telefonoController.dispose();
     super.dispose();
@@ -52,8 +63,7 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
       _showSnackBar('Enter a valid phone number');
       return;
     }
-    // Numero salvato in formato internazionale (+39): serve perché SMS e
-    // WhatsApp riconoscano il contatto.
+    
     final telefono = '+39$localPhone';
     if (_livelloCibo == null) {
       _showSnackBar('Tell us how much you have eaten');
@@ -93,9 +103,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
 
     if (!mounted) return;
 
-    // Avvia la sessione passando il livello cibo scelto.
-    // pushReplacement: la PreSessionScreen viene tolta dallo stack, così
-    // "END THE NIGHT" (un solo pop) riporta direttamente alla Home.
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -140,8 +147,7 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
 
             _field(nomeController, 'Contact name', 'e.g. Marco'),
             const SizedBox(height: 12),
-            _field(telefonoController, 'Phone number', 'e.g. 3331234567',
-                phone: true),
+            _field(telefonoController, 'Phone number', 'e.g. 3331234567', phone: true),
 
             const SizedBox(height: 28),
 
@@ -194,7 +200,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
     );
   }
 
-  // Chip per scegliere il livello di cibo
   Widget _foodChip(String label, LivelloCibo livello) {
     final selected = _livelloCibo == livello;
     return ChoiceChip(
@@ -210,10 +215,7 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
     );
   }
 
-  // Helper per i TextField, stesso stile delle altre schermate.
-  // Per il telefono accetta solo cifre e il simbolo '+'.
-  Widget _field(TextEditingController controller, String label, String hint,
-      {bool phone = false}) {
+  Widget _field(TextEditingController controller, String label, String hint, {bool phone = false}) {
     return TextField(
       controller: controller,
       keyboardType: phone ? TextInputType.phone : TextInputType.text,
@@ -229,8 +231,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
         border: const OutlineInputBorder(),
         labelText: label,
         hintText: hint,
-        // Prefisso fisso +39 per il telefono: l'utente digita solo la parte
-        // locale, così il numero salvato è sempre internazionale.
         prefixText: phone ? '+39 ' : null,
       ),
     );

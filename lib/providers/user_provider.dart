@@ -3,23 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
- 
 
-// SHARED PREFERENCES KEYS
-// Usiamo sempre e solo queste 
-//
-// 'username'          → username scelto 
-// 'password'          → login password
-// 'name'              → per messaggio d'emergenza
-// 'weight'            → formula del BAC 
-// 'gender'            → idem con patate 
-// 'isUserLogged'      → vero dopo il login
-// 'nomeContatto'      → per l'emergenza
-// 'telefonoContatto'  → idem
-// 'livelloStress'     → nel nome, deciderà se viene applicato il coefficiente o meno 
-// aggiungi isMinor, per quello di cui abbiamo parlato su WA
-
- 
 class UserProvider extends ChangeNotifier {
 
   static const String _usersPrefsKey = 'usersData';
@@ -40,6 +24,13 @@ class UserProvider extends ChangeNotifier {
   String livelloStress = 'normal';
 
   Map<String, Map<String, dynamic>> _users = {};
+
+  // --- NUOVE VARIABILI PER LA GESTIONE DELLA SESSIONE DEI DRINK ---
+  // Memorizza la lista dei drink consumati nella serata corrente
+  List<dynamic> currentSessionDrinks = [];
+
+  // Genera la chiave univoca per la persistenza della sessione corrente del singolo utente
+  String _sessionKeyForAccount(String id) => 'current_session_${Uri.encodeComponent(id)}';
 
   String _createAccountId() {
     final random = Random.secure();
@@ -92,6 +83,7 @@ class UserProvider extends ChangeNotifier {
       nomeContatto = null;
       telefonoContatto = null;
       livelloStress = 'normal';
+      currentSessionDrinks = []; // Pulisce lo stato dei drink se non c'è profilo
       return;
     }
 
@@ -139,6 +131,8 @@ class UserProvider extends ChangeNotifier {
     final currentUsername = prefs.getString(_currentUsernameKey);
     if (isUserLogged && currentUsername != null) {
       _applyProfile(currentUsername, _users[currentUsername]);
+      // CARICAMENTO AUTOMATICO: Recupera la sessione dei drink salvata per questo account
+      await loadCurrentSessionIfAny();
     } else {
       _applyProfile(null, null);
     }
@@ -171,14 +165,17 @@ class UserProvider extends ChangeNotifier {
       final accountId = _users[username]?['accountId'] as String?;
       if (accountId != null && accountId.isNotEmpty) {
         await prefs.remove('storicoBevute_${Uri.encodeComponent(accountId)}');
+        await prefs.remove(_sessionKeyForAccount(accountId)); // Rimuove eventuali sessioni sporche
       }
     }
 
     if (setAsCurrentUser) {
       await prefs.setString(_currentUsernameKey, username);
       _applyProfile(username, _users[username]);
+      await loadCurrentSessionIfAny(); // Sincronizza la sessione drink
     } else if (this.username == username) {
       _applyProfile(username, _users[username]);
+      await loadCurrentSessionIfAny();
     }
  
     notifyListeners();
@@ -199,11 +196,14 @@ class UserProvider extends ChangeNotifier {
     await prefs.setBool('isUserLogged', true);
     await prefs.setString(_currentUsernameKey, username);
     _applyProfile(username, user);
+    
+    // Sincronizza i drink dell'utente appena loggato
+    await loadCurrentSessionIfAny();
+    
     notifyListeners();
     return true;
   }
  
-  // Legge la password da SharedPreferences, usato da SettingsPage
   Future<String> getPassword() async {
     if (username == null) {
       return '';
@@ -219,6 +219,7 @@ class UserProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isUserLogged', true);
     await prefs.setString(_currentUsernameKey, username!);
+    await loadCurrentSessionIfAny();
     notifyListeners();
   }
  
@@ -268,5 +269,64 @@ class UserProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  // --- NUOVI METODI DI LOGICA CORE PER LA PERSISTENZA DEI DRINK ---
+
+  // 1. Carica la sessione corrente dal disco locale (se esiste)
+  Future<void> loadCurrentSessionIfAny() async {
+    if (accountId == null || accountId!.isEmpty) {
+      currentSessionDrinks = [];
+      return;
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    final String key = _sessionKeyForAccount(accountId!);
+    final String? rawJson = prefs.getString(key);
+
+    if (rawJson != null && rawJson.isNotEmpty) {
+      currentSessionDrinks = jsonDecode(rawJson) as List<dynamic>;
+    } else {
+      currentSessionDrinks = [];
+    }
+    notifyListeners();
+  }
+
+  // 2. Aggiunge un drink e lo scrive immediatamente su SharedPreferences
+  Future<void> addDrinkToSession(dynamic drink) async {
+    currentSessionDrinks.add(drink);
+    notifyListeners();
+
+    if (accountId != null && accountId!.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final String key = _sessionKeyForAccount(accountId!);
+      await prefs.setString(key, jsonEncode(currentSessionDrinks));
+    }
+  }
+
+  // 3. Rimuove un drink specifico e aggiorna SharedPreferences (opzionale, utile per correzioni)
+  Future<void> removeDrinkFromSession(int index) async {
+    if (index >= 0 && index < currentSessionDrinks.length) {
+      currentSessionDrinks.removeAt(index);
+      notifyListeners();
+
+      if (accountId != null && accountId!.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final String key = _sessionKeyForAccount(accountId!);
+        await prefs.setString(key, jsonEncode(currentSessionDrinks));
+      }
+    }
+  }
+
+  // 4. FUNZIONE CORE "END THE NIGHT": Cancella definitivamente la sessione offline su SharedPreferences
+  Future<void> endTheNight() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    if (accountId != null && accountId!.isNotEmpty) {
+      final String key = _sessionKeyForAccount(accountId!);
+      await prefs.remove(key); // Distrugge la sessione sul disco fisso
+    }
+
+    currentSessionDrinks = []; // Svuota l'array locale in RAM
+    notifyListeners();
+  }
 }
- 
