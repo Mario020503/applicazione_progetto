@@ -36,14 +36,14 @@ dependencies:
   shared_preferences: ^2.5.3
   intl: ^0.20.2
   url_launcher: ^6.3.1
+  crypto: ^3.0.3   # hashing della password
 
   # Pacchetti grafici
   fl_chart: ^0.70.2
-  syncfusion_flutter_charts: ^26.1.2
 
-  # Interfaccia utente, icone e calendario (Aggiornato a 2.5.4!)
+  # Interfaccia utente e icone
   cupertino_icons: ^1.0.8
-  flutter_calendar_carousel: ^2.5.4
+  google_fonts: ^8.0.0
 
   # Connessione di rete e geolocalizzazione
   http: ^1.2.2
