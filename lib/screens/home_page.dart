@@ -8,7 +8,8 @@ import 'package:buzzed_buddy/screens/loginf_page.dart';
 import 'package:buzzed_buddy/screens/settings_page.dart';
 import 'package:buzzed_buddy/screens/pre_session_page.dart';
 import 'package:buzzed_buddy/widgets/small_app_logo.dart';
-import 'package:buzzed_buddy/widgets/hr_graphic.dart'; 
+import 'package:buzzed_buddy/widgets/hr_graphic.dart';
+import 'package:buzzed_buddy/widgets/stress_graphic.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,8 +34,10 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DataProvider>(context, listen: false).fetchLucaHeartDataForDay(_selectedDay);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final dp = Provider.of<DataProvider>(context, listen: false);
+      await dp.fetchLucaHeartDataForDay(_selectedDay);
+      await dp.computeBaselineIfNeeded();
     });
   }
 
@@ -204,7 +207,35 @@ class _HomePageState extends State<HomePage> {
                   child: CustomPlotHR(
                     hrData: dataProvider.hrvPoints,
                     selectedDate: DateTime.parse(_selectedDay),
-                  ), 
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                // DEBUG TEMPORANEO (da togliere): baseline e n. giorni usati
+                Text(
+                  'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} gg · '
+                  'oggi ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Stress (from HRV)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 230,
+                  width: MediaQuery.of(context).size.width * 0.92,
+                  padding: const EdgeInsets.only(
+                      top: 16, bottom: 8, right: 16, left: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: StressPlot(
+                    points: dataProvider.stressPoints,
+                    emptyMessage: 'Computing baseline…',
+                  ),
                 ),
               ],
 
@@ -217,9 +248,15 @@ class _HomePageState extends State<HomePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final userProvider =
+                        Provider.of<UserProvider>(context, listen: false);
+                    // Baseline (una volta) + stress della serata dall'HRV del giorno
+                    await dataProvider.computeBaselineIfNeeded();
+                    await userProvider
+                        .saveStressLevel(dataProvider.stressForSelectedDay());
+                    navigator.push(
                       MaterialPageRoute(builder: (_) => const PreSessionScreen()),
                     );
                   },
