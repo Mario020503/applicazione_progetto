@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
-import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -28,11 +27,6 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: const Text('Calendar'),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        actions: const [SmallAppLogo()],
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -52,6 +46,14 @@ class _CalendarPageState extends State<CalendarPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                          minimumSize: const Size(150, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: () {
                           setState(() {
                             _focusedDate = DateTime(
@@ -63,6 +65,14 @@ class _CalendarPageState extends State<CalendarPage> {
                         child: const Text('← PREVIOUS MONTH'),
                       ),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                          minimumSize: const Size(150, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: () {
                           setState(() {
                             _focusedDate = DateTime(
@@ -87,9 +97,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey),
+                      border: Border.all(color: Colors.black, width: 1.5),
                     ),
                     child: Column(
                       children: [
@@ -98,6 +108,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
+                            color: Color.fromARGB(255, 255, 196, 0),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -106,7 +117,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: Color.fromARGB(255, 255, 196, 0),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -120,6 +131,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
+                              color: Color.fromARGB(255, 255, 196, 0),
                             ),
                           );
                         }),
@@ -127,10 +139,6 @@ class _CalendarPageState extends State<CalendarPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Back to Home'),
-                  ),
                 ],
               ),
             ),
@@ -248,7 +256,7 @@ class _CalendarPageState extends State<CalendarPage> {
       borderColor = Colors.black;
       borderWidth = 2;
     } else {
-      borderColor = outOfMonth ? Colors.transparent : Colors.grey.shade400;
+      borderColor = outOfMonth ? Colors.black.withValues(alpha: 0.2) : Colors.black;
       borderWidth = 1;
     }
 
@@ -279,4 +287,3 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 }
-
