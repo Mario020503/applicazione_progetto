@@ -20,6 +20,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String _selectedDay = "2026-06-24";
+  int _selectedIndex = 0;
 
   final List<String> _daysRange = [
     "2026-06-24",
@@ -105,217 +106,345 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context);
+    final storico = Provider.of<StoricoProvider>(context);
     final dataProvider = Provider.of<DataProvider>(context); 
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
-        title: const Text('Home'),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        actions: const [SmallAppLogo()],
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                'Welcome ${user.username ?? ''}',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-
-              // DROPDOWN SELEZIONE GIORNO
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: DropdownButton<String>(
-                  value: _selectedDay,
-                  underline: const SizedBox(),
-                  style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-                  items: _daysRange.map((String day) {
-                    return DropdownMenuItem<String>(
-                      value: day,
-                      child: Text("Data of: $day"),
-                    );
-                  }).toList(),
-                  onChanged: (String? newDay) {
-                    if (newDay != null) {
-                      setState(() {
-                        _selectedDay = newDay;
-                      });
-                      dataProvider.fetchLucaHeartDataForDay(newDay);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              if (dataProvider.isLoading)
-                const CircularProgressIndicator(color: Colors.white)
-              else if (dataProvider.heartRates.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "No data recorded for $_selectedDay.",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
-                  ),
-                )
-              else ...[
-                // CONTAINER HRV CON ICONA "i" DI INFO INTEGRATA
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Daily Average HRV: ${dataProvider.calculateHRV.toStringAsFixed(1)} ms",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-                      ),
-                      const SizedBox(width: 6),
-                      // Bottone rotondo con la "i" per le info
-                      GestureDetector(
-                        onTap: () => _showHrvInfoDialog(context),
-                        child: const Icon(
-                          Icons.info_outline,
-                          size: 22,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // BOX GRAFICO
-                Container(
-                  height: 270,
-                  width: MediaQuery.of(context).size.width * 0.92,
-                  padding: const EdgeInsets.only(top: 24, bottom: 12, right: 24, left: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: CustomPlotHR(
-                    hrData: dataProvider.hrvPoints,
-                    selectedDate: DateTime.parse(_selectedDay),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                // DEBUG TEMPORANEO (da togliere): baseline e n. giorni usati
-                Text(
-                  'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} gg · '
-                  'oggi ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Stress (from HRV)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 230,
-                  width: MediaQuery.of(context).size.width * 0.92,
-                  padding: const EdgeInsets.only(
-                      top: 16, bottom: 8, right: 16, left: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: StressPlot(
-                    points: dataProvider.stressPoints,
-                    emptyMessage: 'Computing baseline…',
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 40),
-              Container(
-                height: 50,
-                width: 250,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: () async {
-                    final navigator = Navigator.of(context);
-                    final userProvider =
-                        Provider.of<UserProvider>(context, listen: false);
-                    // Baseline (una volta) + stress della serata dall'HRV del giorno
-                    await dataProvider.computeBaselineIfNeeded();
-                    await userProvider
-                        .saveStressLevel(dataProvider.stressForSelectedDay());
-                    navigator.push(
-                      MaterialPageRoute(builder: (_) => const PreSessionScreen()),
-                    );
-                  },
-                  child: const Text(
-                    "Let's start",
-                    style: TextStyle(color: Colors.black, fontSize: 18),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
+        automaticallyImplyLeading: false,
+        title: Text(
+          _selectedIndex == 0
+              ? 'Home'
+              : _selectedIndex == 1
+                  ? 'Calendar'
+                  : _selectedIndex == 2
+                      ? 'Settings'
+                      : 'Profile',
+          style: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
           ),
         ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(child: Text('Settings and activities')),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Calendar'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CalendarPage()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () => _logout(context),
-            ),
-          ],
+        iconTheme: const IconThemeData(
+          color: Color.fromARGB(255, 255, 196, 0),
         ),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        actions: const [SmallAppLogo()],
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          SingleChildScrollView(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    'Welcome back, ${user.username ?? ''}',
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDailyNudge(storico),
+                  const SizedBox(height: 8),
+                  // existing home content continues...
+                  // DROPDOWN SELEZIONE GIORNO
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedDay,
+                      underline: const SizedBox(),
+                      style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                      items: _daysRange.map((String day) {
+                        return DropdownMenuItem<String>(
+                          value: day,
+                          child: Text("Data of: $day"),
+                        );
+                      }).toList(),
+                      onChanged: (String? newDay) {
+                        if (newDay != null) {
+                          setState(() {
+                            _selectedDay = newDay;
+                          });
+                          dataProvider.fetchLucaHeartDataForDay(newDay);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  if (dataProvider.isLoading)
+                    const CircularProgressIndicator(color: Colors.white)
+                  else if (dataProvider.heartRates.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        "No data recorded for $_selectedDay.",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Daily Average HRV: ${dataProvider.calculateHRV.toStringAsFixed(1)} ms",
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => _showHrvInfoDialog(context),
+                            child: const Icon(
+                              Icons.info_outline,
+                              size: 22,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      height: 270,
+                      width: MediaQuery.of(context).size.width * 0.92,
+                      padding: const EdgeInsets.only(top: 24, bottom: 12, right: 24, left: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      child: CustomPlotHR(
+                        hrData: dataProvider.hrvPoints,
+                        selectedDate: DateTime.parse(_selectedDay),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} gg · '
+                      'oggi ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Stress (from HRV)',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 230,
+                      width: MediaQuery.of(context).size.width * 0.92,
+                      padding: const EdgeInsets.only(top: 16, bottom: 8, right: 16, left: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: StressPlot(
+                        points: dataProvider.stressPoints,
+                        emptyMessage: 'Computing baseline…',
+                        isLoading: dataProvider.isBaselineLoading,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 40),
+                  Container(
+                    height: 50,
+                    width: 250,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                      ),
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        final userProvider = Provider.of<UserProvider>(context, listen: false);
+                        await dataProvider.computeBaselineIfNeeded();
+                        final stress = dataProvider.stressForSelectedDay();
+                        await userProvider.saveStressLevel(stress);
+                        final warnings = <String>[];
+                        if (storico.bevutoIeri) {
+                          warnings.add('You drank yesterday. Your body may still be recovering.');
+                        }
+                        if (stress == 'high') {
+                          warnings.add('You seem stressed today. Alcohol tends to hit harder when you are stressed.');
+                        }
+                        if (warnings.isNotEmpty) {
+                          final proceed = await _showPreStartWarning(warnings);
+                          if (proceed != true) return;
+                        }
+                        navigator.push(
+                          MaterialPageRoute(builder: (_) => const PreSessionScreen()),
+                        );
+                      },
+                      child: const Text(
+                        "Let's start",
+                        style: TextStyle(color: Color.fromARGB(255, 255, 196, 0), fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+          const CalendarPage(),
+          const SettingsPage(),
+          const SizedBox.shrink(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+        selectedItemColor: const Color.fromARGB(255, 255, 196, 0),
+        unselectedItemColor: Colors.white70,
+        onTap: (index) {
+          if (index == 3) {
+            _confirmAndLogout(context);
+            return;
+          }
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
+        ],
       ),
     );
+  }
+
+  Future<void> _confirmAndLogout(BuildContext ctx) async {
+    final doLogout = await showDialog<bool>(
+      context: ctx,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('Are you sure?'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(false),
+            child: const Text('Go back'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+            onPressed: () => Navigator.of(dCtx).pop(true),
+            child: const Text('Logout', style: TextStyle(color: Color.fromARGB(255, 255, 196, 0))),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (doLogout == true) {
+      _logout(context);
+    }
   }
 
   void _logout(BuildContext context) async {
     final user = Provider.of<UserProvider>(context, listen: false);
     final storico = Provider.of<StoricoProvider>(context, listen: false);
     await user.logout();
+    await storico.clear(); // svuota lo storico in RAM all'uscita
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
+    );
+  }
+
+  // Messaggio contestuale in cima alla Home (punto 2):
+  // avviso se hai bevuto ieri, elogio se sei a 3+ giorni puliti, altrimenti nulla.
+  // Solo l'ELOGIO in Home. L'avviso "hai bevuto ieri" NON compare qui, ma solo
+  // al "Let's start" (così chi apre senza voler bere non si sente giudicato).
+  Widget _buildDailyNudge(StoricoProvider storico) {
+    if (storico.storico.isEmpty || storico.giorniPuliti < 3) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.92,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.green.shade100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.emoji_events_outlined, color: Colors.black87),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${storico.giorniPuliti} days without drinking, nice work!',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Avviso al "Let's start": mostra i motivi validi (bevuto ieri e/o stressato)
+  // come lista puntata. Attrito, non blocco: "Go back" grande in evidenza,
+  // "Continue anyway" piccolo. Ritorna true solo se si sceglie di procedere.
+  Future<bool?> _showPreStartWarning(List<String> messages) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Before you start'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final m in messages)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('•  ',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Expanded(child: Text(m)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+              minimumSize: const Size(150, 48),
+            ),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Go back',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continue anyway',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ),
+        ],
+      ),
     );
   }
 }
