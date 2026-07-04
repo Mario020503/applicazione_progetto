@@ -1,12 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
-import 'package:buzzed_buddy/providers/data_provider.dart'; 
+import 'package:buzzed_buddy/providers/data_provider.dart';
 import 'package:buzzed_buddy/screens/splash_page.dart';
- 
+
+// Prende un TextTheme (es. quello di un font di Google Fonts) e forza
+// grassetto + corsivo su ognuno dei 15 stili tipografici di Material.
+// Un Text che non specifica il proprio fontWeight/fontStyle erediterà
+// questi valori da qui: è il punto unico da cui cambiare il font di tutta
+// l'app, invece di andare a modificare ogni singolo widget Text.
+TextTheme _boldItalic(TextTheme base) {
+  TextStyle? bi(TextStyle? style) =>
+      style?.copyWith(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic);
+
+  return base.copyWith(
+    displayLarge: bi(base.displayLarge),
+    displayMedium: bi(base.displayMedium),
+    displaySmall: bi(base.displaySmall),
+    headlineLarge: bi(base.headlineLarge),
+    headlineMedium: bi(base.headlineMedium),
+    headlineSmall: bi(base.headlineSmall),
+    titleLarge: bi(base.titleLarge),
+    titleMedium: bi(base.titleMedium),
+    titleSmall: bi(base.titleSmall),
+    bodyLarge: bi(base.bodyLarge),
+    bodyMedium: bi(base.bodyMedium),
+    bodySmall: bi(base.bodySmall),
+    labelLarge: bi(base.labelLarge),
+    labelMedium: bi(base.labelMedium),
+    labelSmall: bi(base.labelSmall),
+  );
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('en_GB', null);
@@ -35,6 +64,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 255, 196, 0),
         ),
+        textTheme: _boldItalic(GoogleFonts.poppinsTextTheme()),
         useMaterial3: true,
       ),
       home: const AppEntry(),
