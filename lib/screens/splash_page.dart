@@ -23,28 +23,27 @@ class SplashScreen extends StatelessWidget {
  
             Image.asset(
               'assets/images/LogoBB.png',
-              width: MediaQuery.of(context).size.width * 0.7,
+              width: MediaQuery.of(context).size.width * 0.98,
             ),
- 
-            Text(
-              user.username != null
-                  ? "Welcome back, ${user.username}!"
-                  : "BuzzedBuddy",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 50,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+
+            if (user.username != null)
+              Text(
+                "Welcome back, ${user.username}!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
-            ),
  
             SizedBox(height: 40),
  
-            ElevatedButton(
+            FilledButton(
               onPressed: () {
                 if (user.username != null) {
                   // LET'S GO → HomePage (con drawer per Calendar e Settings)
-                  
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => HomePage()),
@@ -56,18 +55,18 @@ class SplashScreen extends StatelessWidget {
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(
+              style: FilledButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Color.fromARGB(255, 255, 196, 0),
-                minimumSize: Size(300, 80),
+                minimumSize: Size(320, 90),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
               child: Text(
                 user.username != null ? "LET'S GO" : "SIGN UP",
                 style: TextStyle(
-                  fontSize: 30,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2,
                 ),
