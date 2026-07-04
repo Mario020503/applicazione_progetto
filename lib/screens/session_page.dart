@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,7 +32,7 @@ class _SessionScreenState extends State<SessionScreen> {
   double _peakBAC = 0;
   late final StoricoProvider _storicoProv;
 
-  double _orangeThreshold = 0.5;
+  final double _orangeThreshold = 0.5;
   double _redThreshold = 1.5;
   
   // Variabile locale di backup per mantenere il livello del cibo in caso di riavvio app
@@ -47,7 +46,7 @@ class _SessionScreenState extends State<SessionScreen> {
     }
   }
 
-  final Map<String, Map<String, dynamic>> _drinks_db = {
+  final Map<String, Map<String, dynamic>> _drinksDb = {
     'Small beer (330ml)':       {'ml': 330.0, 'abv': 0.05},
     'Medium beer (500ml)':      {'ml': 500.0, 'abv': 0.05},
     'Large beer (660ml)':       {'ml': 660.0, 'abv': 0.05},
@@ -149,7 +148,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   void _addDrink() async {
     final user = Provider.of<UserProvider>(context, listen: false);
-    final drink = _drinks_db[_selectedDrink]!;
+    final drink = _drinksDb[_selectedDrink]!;
     
     if (user.currentSessionDrinks.isEmpty) {
       _sessionStart = DateTime.now();
@@ -413,7 +412,7 @@ class _SessionScreenState extends State<SessionScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -490,7 +489,7 @@ class _SessionScreenState extends State<SessionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -498,7 +497,7 @@ class _SessionScreenState extends State<SessionScreen> {
           DropdownButton<String>(
             value: _selectedDrink,
             isExpanded: true,
-            items: _drinks_db.keys
+            items: _drinksDb.keys
                 .map((name) => DropdownMenuItem(value: name, child: Text(name)))
                 .toList(),
             onChanged: (val) => setState(() => _selectedDrink = val!),
