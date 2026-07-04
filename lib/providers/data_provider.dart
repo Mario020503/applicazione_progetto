@@ -13,6 +13,9 @@ class DataProvider with ChangeNotifier {
 
   List<HeartRate> _heartRates = [];
   bool _isLoading = false;
+  bool _isBaselineLoading = false;
+
+  bool get isBaselineLoading => _isBaselineLoading;
 
   // --- BASELINE HRV (per decidere lo stress della serata) ---
   // Media dell'HRV su un intervallo ampio di giorni, calcolata UNA sola volta
@@ -53,7 +56,7 @@ class DataProvider with ChangeNotifier {
         _heartRates.sort((a, b) => a.time.compareTo(b.time));
       }
     } catch (e) {
-      print("DataProvider Eccezione: $e");
+      debugPrint("DataProvider Eccezione: $e");
       _heartRates = [];
     }
 
@@ -154,17 +157,25 @@ class DataProvider with ChangeNotifier {
   Future<void> computeBaselineIfNeeded() async {
     if (_baseline != null) return;
 
+    _isBaselineLoading = true;
+    notifyListeners();
+
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getDouble(_baselineCacheKey);
     if (cached != null) {
       _baseline = cached;
       _baselineDaysUsed = prefs.getInt(_baselineDaysCacheKey) ?? 0;
+      _isBaselineLoading = false;
       notifyListeners();
       return;
     }
 
     final token = await _impactService.login(_myUsername, _myPassword);
-    if (token == null) return;
+    if (token == null) {
+      _isBaselineLoading = false;
+      notifyListeners();
+      return;
+    }
 
     final List<double> dailyAverages = [];
     DateTime d = DateTime.parse(_baselineStart);
@@ -197,6 +208,7 @@ class DataProvider with ChangeNotifier {
       debugPrint(
           'BASELINE: ${_baseline!.toStringAsFixed(1)} ms su $_baselineDaysUsed giorni');
     }
+    _isBaselineLoading = false;
     notifyListeners();
   }
 
