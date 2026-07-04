@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../models/heart_rate.dart';
 
 class ImpactService {
@@ -18,7 +19,7 @@ class ImpactService {
         return data['access'] as String;
       }
     } catch (e) {
-      print('Errore login: $e');
+      debugPrint('Errore login: $e');
     }
     return null;
   }
@@ -44,7 +45,7 @@ class ImpactService {
 
         if (decodedBody is Map<String, dynamic>) {
           // --- LOG TEMPORANEO DI ISPEZIONE CHIAVI ---
-          print("DEBUG IMPACT: Il server ha risposto con una Mappa. Le chiavi presenti sono: ${decodedBody.keys.toList()}");
+          debugPrint("DEBUG IMPACT: Il server ha risposto con una Mappa. Le chiavi presenti sono: ${decodedBody.keys.toList()}");
           
           // Estrazione dinamica provando le chiavi standard del server IMPACT
           if (decodedBody['data'] != null) {
@@ -66,10 +67,10 @@ class ImpactService {
         
         return rawData.map((json) => HeartRate.fromJson(day, json as Map<String, dynamic>)).toList();
       } else {
-        print("Errore server in fetchHeartRateByDay: StatusCode ${response.statusCode}");
+        debugPrint("Errore server in fetchHeartRateByDay: StatusCode ${response.statusCode}");
       }
     } catch (e) {
-      print('Errore fetchHeartRateByDay (Blocco Catch): $e');
+      debugPrint('Errore fetchHeartRateByDay (Blocco Catch): $e');
     }
     return null;
   }
