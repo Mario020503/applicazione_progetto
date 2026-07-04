@@ -11,10 +11,12 @@ class StressPlot extends StatelessWidget {
     super.key,
     required this.points,
     required this.emptyMessage,
+    this.isLoading = false,
   });
 
   final List<HeartRate> points; // value = livello di stress 0-100
   final String emptyMessage;
+  final bool isLoading;
 
   // Colore per fascia di stress (stile Garmin).
   static Color colorFor(int stress) {
@@ -26,10 +28,32 @@ class StressPlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          CircularProgressIndicator(color: Color.fromARGB(255, 255, 196, 0)),
+          SizedBox(height: 12),
+          Text(
+            'Computing baseline…',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 255, 196, 0),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (points.isEmpty) {
       return Center(
-        child: Text(emptyMessage,
-            style: const TextStyle(fontWeight: FontWeight.w500)),
+        child: Text(
+          emptyMessage,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Color.fromARGB(255, 255, 196, 0),
+          ),
+        ),
       );
     }
 
@@ -43,7 +67,7 @@ class StressPlot extends StatelessWidget {
             BarChartRodData(
               toY: sorted[i].value.toDouble(),
               color: colorFor(sorted[i].value),
-              width: 4,
+              width: 2,
             ),
           ],
         ),
@@ -52,20 +76,24 @@ class StressPlot extends StatelessWidget {
     // Mostriamo un'etichetta oraria ogni ~1/4 dei punti, per non affollare.
     final labelEvery = (sorted.length / 4).ceil().clamp(1, sorted.length);
 
+    const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
     return Column(
       children: [
-        Expanded(
+        Container(
+          color: Colors.black,
+          height: 180,
           child: BarChart(
             BarChartData(
               minY: 0,
               maxY: 100,
               barGroups: groups,
+              groupsSpace: 2,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
                 horizontalInterval: 25,
                 getDrawingHorizontalLine: (v) =>
-                    const FlLine(color: Colors.black12, strokeWidth: 1),
+                    FlLine(color: plotYellow.withValues(alpha: 0.18), strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
@@ -79,7 +107,7 @@ class StressPlot extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black54),
+                        color: Color.fromARGB(255, 255, 196, 0)),
                   ),
                   axisNameSize: 18,
                   sideTitles: SideTitles(
@@ -88,7 +116,7 @@ class StressPlot extends StatelessWidget {
                     interval: 25,
                     getTitlesWidget: (v, meta) => Text(
                       v.toInt().toString(),
-                      style: const TextStyle(fontSize: 10, color: Colors.black87),
+                      style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
                     ),
                   ),
                 ),
@@ -105,8 +133,7 @@ class StressPlot extends StatelessWidget {
                         space: 4,
                         child: Text(
                           DateFormat('HH:mm').format(sorted[i].time),
-                          style:
-                              const TextStyle(fontSize: 10, color: Colors.black87),
+                          style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
                         ),
                       );
                     },
@@ -120,7 +147,7 @@ class StressPlot extends StatelessWidget {
                     return BarTooltipItem(
                       '${DateFormat('HH:mm').format(t)}\nStress ${rod.toY.toInt()}',
                       const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                          color: Color.fromARGB(255, 255, 196, 0), fontWeight: FontWeight.bold),
                     );
                   },
                 ),
@@ -163,7 +190,7 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11)),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color.fromARGB(255, 255, 196, 0))),
       ],
     );
   }
