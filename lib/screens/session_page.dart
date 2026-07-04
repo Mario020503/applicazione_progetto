@@ -1,32 +1,53 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
- 
+import 'package:buzzed_buddy/providers/storico_provider.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
+
+enum LivelloCibo { niente, spuntino, pasto }
+
 class SessionScreen extends StatefulWidget {
-  const SessionScreen({super.key});
- 
+  final LivelloCibo livelloCibo;
+  const SessionScreen({super.key, required this.livelloCibo});
+
   @override
   State<SessionScreen> createState() => _SessionScreenState();
 }
- 
+
 class _SessionScreenState extends State<SessionScreen> {
- 
   DateTime _sessionStart = DateTime.now();
-  final List<Map<String, dynamic>> _drinks = [];
- 
   double _currentBAC = 0.0;
   String _selectedDrink = 'Small beer (330ml)';
   int _quantity = 1;
   bool _callingForHelp = false;
   Timer? _timer;
- 
+
+  static const _smsChannel = MethodChannel('buzzedbuddy/sms');
+  double _peakBAC = 0;
+  late final StoricoProvider _storicoProv;
+
   double _orangeThreshold = 0.5;
   double _redThreshold = 1.5;
- 
-  final Map<String, Map<String, dynamic>> _drinks_db = {
+  bool _isMinor = false;
+  
+  // Variabile locale di backup per mantenere il livello del cibo in caso di riavvio app
+  late LivelloCibo _currentLivelloCibo;
+
+  double get _foodFactor {
+    switch (_currentLivelloCibo) {
+      case LivelloCibo.niente:   return 1.0;
+      case LivelloCibo.spuntino: return 0.9;
+      case LivelloCibo.pasto:    return 0.8;
+    }
+  }
+
+  final Map<String, Map<String, dynamic>> _drinksDb = {
     'Small beer (330ml)':       {'ml': 330.0, 'abv': 0.05},
     'Medium beer (500ml)':      {'ml': 500.0, 'abv': 0.05},
     'Large beer (660ml)':       {'ml': 660.0, 'abv': 0.05},
@@ -39,171 +60,340 @@ class _SessionScreenState extends State<SessionScreen> {
     'Negroni':                  {'ml': 100.0, 'abv': 0.25},
     'Shot (40ml)':              {'ml': 40.0,  'abv': 0.40},
   };
- 
+
   @override
   void initState() {
     super.initState();
+    _storicoProv = Provider.of<StoricoProvider>(context, listen: false);
+    _currentLivelloCibo = widget.livelloCibo;
+    
     final user = Provider.of<UserProvider>(context, listen: false);
     if (user.livelloStress == 'high') {
-      _orangeThreshold = 0.3;
       _redThreshold = 1.2;
     }
-    _timer = Timer.periodic(Duration(minutes: 1), (_) => _calculateBAC());
+    // Minorenni: soglie più prudenti (0.3 / 1.0). Regola "vince la più severa":
+    // il rosso non sale sopra 1.0 nemmeno con lo stress.
+    _isMinor = user.isMinor;
+    if (_isMinor) {
+      _orangeThreshold = 0.3;
+      if (_redThreshold > 1.0) _redThreshold = 1.0;
+    }
+
+    // Inizializza o ripristina lo stato precedente persistito offline
+    _initSessionState();
+
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) => _calculateBAC());
   }
- 
+
+  Future<void> _initSessionState() async {
+    final user = Provider.of<UserProvider>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+    
+    if (user.accountId != null) {
+      // Ripristina l'ultimo livello del cibo se l'app è stata killata
+      final savedFood = prefs.getString('saved_food_factor_${user.accountId}');
+      if (savedFood != null && widget.livelloCibo == LivelloCibo.niente) {
+        setState(() {
+          _currentLivelloCibo = LivelloCibo.values.firstWhere(
+            (e) => e.toString() == savedFood, 
+            orElse: () => LivelloCibo.niente
+          );
+        });
+      } else {
+        await prefs.setString('saved_food_factor_${user.accountId}', _currentLivelloCibo.toString());
+      }
+    }
+
+    // Ripristina il tempo di avvio basandosi sul primo drink inserito in precedenza
+    if (user.currentSessionDrinks.isNotEmpty) {
+      final firstDrinkTimeStr = user.currentSessionDrinks.first['time'];
+      if (firstDrinkTimeStr != null) {
+        _sessionStart = DateTime.parse(firstDrinkTimeStr);
+      }
+    }
+
+    _calculateBAC();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    if (_peakBAC > 0) {
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
     super.dispose();
   }
- 
-  // Formula di Widmark: BAC = (grammi alcol / (weight × r)) - (0.15 × ore)
+
   void _calculateBAC() {
     final user = Provider.of<UserProvider>(context, listen: false);
     final hoursElapsed = DateTime.now().difference(_sessionStart).inMinutes / 60;
- 
-    // Fattore r di Widmark: 0.68 per M, 0.55 per F
+
     final r = (user.gender?.toUpperCase() == 'M') ? 0.68 : 0.55;
     final w = user.weight ?? 70.0;
- 
-    // 0.789 = densità dell'alcol etilico in g/ml
+
     double totalGrams = 0;
-    for (final drink in _drinks) {
-      totalGrams += drink['ml'] * drink['abv'] * 0.789;
+    // Legge i dati reattivi e persistenti dal provider globale
+    for (final drink in user.currentSessionDrinks) {
+      totalGrams += (drink['ml'] as num) * (drink['abv'] as num) * 0.789;
     }
- 
+
+    totalGrams *= _foodFactor;
+
     if (totalGrams == 0) {
       setState(() => _currentBAC = 0);
       return;
     }
- 
+
     double bac = (totalGrams / (w * r)) - (0.15 * hoursElapsed);
-    setState(() => _currentBAC = bac < 0 ? 0 : bac);
+    final nuovoBac = bac < 0 ? 0.0 : bac;
+    setState(() => _currentBAC = nuovoBac);
+
+    if (nuovoBac > _peakBAC) {
+      _peakBAC = nuovoBac;
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
   }
- 
-  void _addDrink() {
-    final drink = _drinks_db[_selectedDrink]!;
+
+  void _addDrink() async {
+    final user = Provider.of<UserProvider>(context, listen: false);
+    final drink = _drinksDb[_selectedDrink]!;
+    
+    if (user.currentSessionDrinks.isEmpty) {
+      _sessionStart = DateTime.now();
+    }
+
+    // Salva la mappa nel provider, che scrive in automatico su SharedPreferences
+    await user.addDrinkToSession({
+      'name': _selectedDrink,
+      'ml': drink['ml'] * _quantity,
+      'abv': drink['abv'],
+      'quantity': _quantity,
+      'time': DateTime.now().toIso8601String(),
+    });
+
     setState(() {
-      if (_drinks.isEmpty) _sessionStart = DateTime.now();
-      _drinks.add({
-        'name': _selectedDrink,
-        'ml': drink['ml'] * _quantity,
-        'abv': drink['abv'],
-        'quantity': _quantity,
-        'time': DateTime.now(),
-      });
       _quantity = 1;
     });
     _calculateBAC();
   }
- 
+
   String get _level {
     if (_currentBAC < _orangeThreshold) return 'green';
     if (_currentBAC < _redThreshold) return 'orange';
     return 'red';
   }
- 
+
   String get _timeToSafe {
+    if (_isMinor) {
+      // Per i minorenni niente "safe zone": riflessione/allerta.
+      if (_level == 'green') return 'Reflect on what you\'re doing';
+      if (_level == 'orange') {
+        return 'Beware of your condition, consider stopping immediately';
+      }
+      return 'Stop now and ask for help';
+    }
     if (_currentBAC <= _orangeThreshold) return 'You\'re in the safe zone';
     final hoursLeft = (_currentBAC - _orangeThreshold) / 0.15;
     final hours = hoursLeft.floor();
     final minutes = ((hoursLeft - hours) * 60).round();
     return 'Safe zone in ${hours}h ${minutes}min';
   }
- 
+
   Future<void> _callForHelp() async {
     final user = Provider.of<UserProvider>(context, listen: false);
- 
+
     if (user.telefonoContatto == null || user.nomeContatto == null) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(
+        ..showSnackBar(const SnackBar(
           content: Text('No emergency contact set. Please set one before your next session.'),
         ));
       return;
     }
- 
+
     setState(() => _callingForHelp = true);
- 
+
     String locationLink = 'Location unavailable';
     try {
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 5),
-      );
-      locationLink = 'https://maps.google.com/?q=${position.latitude},${position.longitude}';
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final permessoOk = permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+
+      if (serviceEnabled && permessoOk) {
+        Position? position = await Geolocator.getLastKnownPosition();
+        position ??= await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 15),
+          ),
+        );
+        locationLink = 'https://maps.google.com/?q=${position.latitude},${position.longitude}';
+      }
     } catch (e) {
       locationLink = 'Location unavailable';
     }
- 
-    final message = Uri.encodeComponent(
-      'Hi ${user.nomeContatto}, I\'m ${user.name}.\n\n'
-      'I\'ve had too much to drink and need help.\n'
-      'Can you come pick me up? I\'m here:\n'
-      '$locationLink\n\n'
-      '- Sent automatically by BuzzedBuddy',
-    );
- 
-    final smsUri = Uri.parse('sms:${user.telefonoContatto}?body=$message');
- 
-    if (await canLaunchUrl(smsUri)) {
-      await launchUrl(smsUri);
-    } else {
+
+    final messageText =
+        'Hi ${user.nomeContatto}, I\'m ${user.name}.\n\n'
+        'I\'ve had too much to drink and need help.\n'
+        'Can you come pick me up? I\'m here:\n'
+        '$locationLink\n\n'
+        '- Sent automatically by BuzzedBuddy';
+
+    try {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        await _smsChannel.invokeMethod('sendSmsViaDefaultApp', {
+          'number': user.telefonoContatto,
+          'body': messageText,
+        });
+      } else {
+        final smsUri = Uri.parse('sms:${user.telefonoContatto}?body=${Uri.encodeComponent(messageText)}');
+        await launchUrl(smsUri);
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('Could not open SMS app')));
+          ..showSnackBar(const SnackBar(content: Text('Could not open SMS app')));
       }
     }
- 
+
     if (mounted) setState(() => _callingForHelp = false);
   }
- 
+
   @override
   Widget build(BuildContext context) {
     if (_level == 'red') return _buildRedLayout();
     if (_level == 'orange') return _buildOrangeLayout();
     return _buildGreenLayout();
   }
- 
-  Widget _buildGreenLayout() {
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: Text('Tonight'),
-        backgroundColor: Color.fromARGB(255, 255, 196, 0),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildBacCard(),
-            SizedBox(height: 20),
-            _buildDrinkInput(),
-            SizedBox(height: 20),
-            _buildDrinkList(),
-            SizedBox(height: 20),
-          ],
-        ),
+
+  void _endNight() async {
+    final user = Provider.of<UserProvider>(context, listen: false);
+    if (_peakBAC > 0) {
+      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+    }
+    
+    // Rimuove l'indicatore temporaneo del cibo associato a questo account
+    if (user.accountId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('saved_food_factor_${user.accountId}');
+    }
+
+    // PULIZIA FINALE: Cancella per sempre l'array dei drink dal telefono
+    await user.endTheNight();
+    
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+
+  Widget _buildEndButton() {
+    return ElevatedButton.icon(
+      onPressed: _endNight,
+      icon: const Icon(Icons.nightlight_round),
+      label: const Text('END THE NIGHT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
- 
-  Widget _buildOrangeLayout() {
-    final hoursLeft = _currentBAC > _orangeThreshold
-        ? (_currentBAC - _orangeThreshold) / 0.15
-        : 0.0;
- 
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: Text('Tonight'),
-        backgroundColor: Color.fromARGB(255, 255, 196, 0),
-        elevation: 0,
+
+  // Banner fisso mostrato ai minorenni (nei layout verde e arancione).
+  Widget _buildMinorBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.white, size: 22),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Remember, alcohol is not allowed at your age.',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGreenLayout() {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        appBar: AppBar(
+          title: const Text('Tonight'),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.black,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+          titleTextStyle: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          actions: const [SmallAppLogo()],
+        ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            if (_isMinor) _buildMinorBanner(),
+            _buildBacCard(),
+            const SizedBox(height: 20),
+            _buildDrinkInput(),
+            const SizedBox(height: 20),
+            _buildDrinkList(),
+            const SizedBox(height: 20),
+            _buildEndButton(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildOrangeLayout() {
+    final hoursLeft = _currentBAC > _orangeThreshold ? (_currentBAC - _orangeThreshold) / 0.15 : 0.0;
+
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        appBar: AppBar(
+          title: const Text('Tonight'),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.black,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+          titleTextStyle: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          actions: const [SmallAppLogo()],
+        ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Container(
@@ -213,56 +403,61 @@ class _SessionScreenState extends State<SessionScreen> {
               ),
               child: _buildBacCard(),
             ),
-            SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade700,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      hoursLeft > 1
-                          ? 'You\'ve exceeded the legal driving limit.\nConsider stopping — it\'ll take over an hour to reach the safe zone.'
-                          : 'You\'ve exceeded the legal driving limit.\nYou\'re above the safe driving threshold.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
+            const SizedBox(height: 16),
+            _isMinor
+                ? _buildMinorBanner()
+                : Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade700,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            hoursLeft > 1
+                                ? 'You\'ve exceeded the legal driving limit.\nConsider stopping, it\'ll take over an hour to reach the safe zone.'
+                                : 'You\'ve exceeded the legal driving limit.\nYou\'re above the safe driving threshold.',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildDrinkInput(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildDrinkList(),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+            _buildEndButton(),
+            const SizedBox(height: 20),
           ],
         ),
       ),
-    );
-  }
- 
+    ),
+  );
+}
+
   Widget _buildRedLayout() {
     return Scaffold(
       backgroundColor: Colors.red.shade900,
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   'WARNING',
                   style: TextStyle(
                     fontSize: 48,
@@ -271,24 +466,24 @@ class _SessionScreenState extends State<SessionScreen> {
                     letterSpacing: 4,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
                   '${_currentBAC.toStringAsFixed(2)} g/L',
-                  style: TextStyle(fontSize: 52, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 52, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   _timeToSafe,
-                  style: TextStyle(fontSize: 22, color: Colors.white70),
+                  style: const TextStyle(fontSize: 22, color: Colors.white70),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 Container(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
+                  child: const Text(
                     'STOP DRINKING IMMEDIATELY.\nAsk someone you trust for help.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -299,18 +494,18 @@ class _SessionScreenState extends State<SessionScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: _callingForHelp ? null : _callForHelp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.red.shade900,
-                    minimumSize: Size(double.infinity, 120),
+                    minimumSize: const Size(double.infinity, 120),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: _callingForHelp
                       ? CircularProgressIndicator(color: Colors.red.shade900)
-                      : Text(
+                      : const Text(
                           'CALL FOR HELP',
                           style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
                         ),
@@ -322,27 +517,26 @@ class _SessionScreenState extends State<SessionScreen> {
       ),
     );
   }
- 
+
   Widget _buildBacCard() {
     Color cardColor = _level == 'green' ? Colors.green.shade100 : Colors.orange.shade100;
     Color barColor = _level == 'green' ? Colors.green : Colors.orange;
- 
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Text('CURRENT BAC',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+          const Text('CURRENT BAC', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
           Text(
             '${_currentBAC.toStringAsFixed(2)} g/L',
-            style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.black),
+            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.black),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -352,18 +546,28 @@ class _SessionScreenState extends State<SessionScreen> {
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
-          SizedBox(height: 8),
-          Text(_timeToSafe, style: TextStyle(fontSize: 14, color: Colors.black54)),
+          const SizedBox(height: 8),
+          Text(
+            _timeToSafe,
+            textAlign: TextAlign.center,
+            style: _isMinor
+                ? TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _level == 'green' ? Colors.black87 : Colors.red,
+                  )
+                : const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
         ],
       ),
     );
   }
- 
+
   Widget _buildDrinkInput() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -371,97 +575,97 @@ class _SessionScreenState extends State<SessionScreen> {
           DropdownButton<String>(
             value: _selectedDrink,
             isExpanded: true,
-            items: _drinks_db.keys
+            items: _drinksDb.keys
                 .map((name) => DropdownMenuItem(value: name, child: Text(name)))
                 .toList(),
             onChanged: (val) => setState(() => _selectedDrink = val!),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
                 onPressed: () { if (_quantity > 1) setState(() => _quantity--); },
-                icon: Icon(Icons.remove_circle, size: 36),
+                icon: const Icon(Icons.remove_circle, size: 36),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('$_quantity',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text('$_quantity', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               ),
               IconButton(
                 onPressed: () => setState(() => _quantity++),
-                icon: Icon(Icons.add_circle, size: 36),
+                icon: const Icon(Icons.add_circle, size: 36),
               ),
             ],
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: _addDrink,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
-              foregroundColor: Color.fromARGB(255, 255, 196, 0),
-              minimumSize: Size(double.infinity, 56),
+              foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+              minimumSize: const Size(double.infinity, 56),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text('ADD', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: const Text('ADD', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
- 
+
   Widget _buildDrinkList() {
-    if (_drinks.isEmpty) {
-      return Center(
+    final user = Provider.of<UserProvider>(context);
+    
+    if (user.currentSessionDrinks.isEmpty) {
+      return const Center(
           child: Text('No drinks added yet', style: TextStyle(color: Colors.black54)));
     }
     return ListView.builder(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      itemCount: _drinks.length,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: user.currentSessionDrinks.length,
       itemBuilder: (context, index) {
-        final drink = _drinks[index];
-        final time = drink['time'] as DateTime;
+        final drink = user.currentSessionDrinks[index];
+        final time = DateTime.parse(drink['time']);
         return Dismissible(
           key: Key('$index-${time.toString()}'),
           direction: DismissDirection.endToStart,
           background: Container(
             alignment: Alignment.centerRight,
-            padding: EdgeInsets.only(right: 20),
-            margin: EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.only(right: 20),
+            margin: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
                 color: Colors.red, borderRadius: BorderRadius.circular(12)),
-            child: Icon(Icons.delete, color: Colors.white, size: 28),
+            child: const Icon(Icons.delete, color: Colors.white, size: 28),
           ),
           confirmDismiss: (direction) async {
             return await showDialog(
               context: context,
               builder: (context) => AlertDialog(
-                title: Text('Remove drink'),
-                content: Text('Are you sure? This will affect your BAC calculation.'),
+                title: const Text('Remove drink'),
+                content: const Text('Are you sure? This will affect your BAC calculation.'),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: Text('Cancel')),
+                      child: const Text('Cancel')),
                   TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: Text('Remove', style: TextStyle(color: Colors.red))),
+                      child: const Text('Remove', style: TextStyle(color: Colors.red))),
                 ],
               ),
             );
           },
-          onDismissed: (direction) {
-            setState(() => _drinks.removeAt(index));
+          onDismissed: (direction) async {
+            await user.removeDrinkFromSession(index);
             _calculateBAC();
           },
           child: Card(
-            margin: EdgeInsets.symmetric(vertical: 4),
+            margin: const EdgeInsets.symmetric(vertical: 4),
             child: ListTile(
               title: Text(drink['name']),
               subtitle: Text('${time.hour}:${time.minute.toString().padLeft(2, '0')}'),
-              trailing: Text('x${drink['quantity']}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              trailing: Text('x${drink['quantity']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             ),
           ),
         );

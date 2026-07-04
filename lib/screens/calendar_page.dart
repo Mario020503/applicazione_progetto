@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:buzzed_buddy/providers/storico_provider.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -16,7 +19,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
-    Intl.defaultLocale = 'it_IT';
+    Intl.defaultLocale = 'en_GB';
     _selectedDate = DateTime.now();
     _focusedDate = DateTime.now();
   }
@@ -25,10 +28,6 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: const Text('Calendario'),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -37,7 +36,7 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Column(
                 children: [
                   Text(
-                    'Mese: ${DateFormat.yMMM('it_IT').format(_focusedDate)}',
+                    'Month: ${DateFormat.yMMM('en_GB').format(_focusedDate)}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -48,6 +47,14 @@ class _CalendarPageState extends State<CalendarPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                          minimumSize: const Size(150, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: () {
                           setState(() {
                             _focusedDate = DateTime(
@@ -59,6 +66,14 @@ class _CalendarPageState extends State<CalendarPage> {
                         child: const Text('← PREVIOUS MONTH'),
                       ),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                          minimumSize: const Size(150, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: () {
                           setState(() {
                             _focusedDate = DateTime(
@@ -83,9 +98,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey),
+                      border: Border.all(color: Colors.black, width: 1.5),
                     ),
                     child: Column(
                       children: [
@@ -94,25 +109,37 @@ class _CalendarPageState extends State<CalendarPage> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
+                            color: Color.fromARGB(255, 255, 196, 0),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          DateFormat.yMMMMEEEEd('it_IT').format(_selectedDate),
+                          DateFormat.yMMMMEEEEd('en_GB').format(_selectedDate),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: Color.fromARGB(255, 255, 196, 0),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        Builder(builder: (context) {
+                          final bac = Provider.of<StoricoProvider>(context)
+                              .bacDelGiorno(_selectedDate);
+                          return Text(
+                            bac == null
+                                ? 'No drinks logged'
+                                : 'Peak BAC: ${bac.toStringAsFixed(2)} g/L',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color.fromARGB(255, 255, 196, 0),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Back to Home'),
-                  ),
                 ],
               ),
             ),
@@ -147,6 +174,9 @@ class _CalendarPageState extends State<CalendarPage> {
     for (int i = 1; i <= remainingDays; i++) {
       days.add(DateTime(_focusedDate.year, _focusedDate.month + 1, i));
     }
+
+    // Diario delle serate: serve a colorare le celle in base al picco BAC.
+    final storico = Provider.of<StoricoProvider>(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -184,63 +214,77 @@ class _CalendarPageState extends State<CalendarPage> {
             crossAxisCount: 7,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            children: days
-                .map(
-                  (day) => GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedDate = day;
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: day.month != _focusedDate.month
-                            ? Colors.grey[300]
-                            : (_selectedDate.day == day.day &&
-                                    _selectedDate.month == day.month &&
-                                    _selectedDate.year == day.year)
-                                ? Colors.blue
-                                : (day.day == DateTime.now().day &&
-                                        day.month == DateTime.now().month &&
-                                        day.year == DateTime.now().year)
-                                    ? Colors.orange
-                                    : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: day.month != _focusedDate.month
-                              ? Colors.transparent
-                              : Colors.grey,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          day.day.toString(),
-                          style: TextStyle(
-                            color: day.month != _focusedDate.month
-                                ? Colors.grey
-                                : (_selectedDate.day == day.day &&
-                                        _selectedDate.month == day.month &&
-                                        _selectedDate.year == day.year)
-                                    ? Colors.white
-                                    : Colors.black,
-                            fontWeight: day.day == DateTime.now().day &&
-                                    day.month == DateTime.now().month &&
-                                    day.year == DateTime.now().year
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
+            children: days.map((day) => _buildDayCell(day, storico)).toList(),
           ),
         ],
       ),
     );
   }
+
+  // Colore di riempimento della cella in base alla gravità della serata.
+  // Fasce fisse (g/L), per poter confrontare giorni diversi:
+  //   nessun dato → bianco (giorno pulito)
+  //   0–0.5   → verde   (sotto il limite legale, ma si è bevuto)
+  //   0.5–1.5 → arancio
+  //   ≥1.5    → rosso
+  Color _fillColor(DateTime day, StoricoProvider storico) {
+    if (day.month != _focusedDate.month) return Colors.grey[300]!;
+    final bac = storico.bacDelGiorno(day);
+    if (bac == null) return Colors.white;
+    if (bac < 0.5) return Colors.green;
+    if (bac < 1.5) return Colors.orange;
+    return Colors.red;
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  // Costruisce una singola cella. Riempimento = gravità della serata,
+  // bordo = selezione/oggi: tenendoli separati, un giorno rosso resta
+  // rosso anche quando è selezionato.
+  Widget _buildDayCell(DateTime day, StoricoProvider storico) {
+    final fill = _fillColor(day, storico);
+    final outOfMonth = day.month != _focusedDate.month;
+    final isSelected = _isSameDay(day, _selectedDate);
+    final isToday = _isSameDay(day, DateTime.now());
+
+    Color borderColor;
+    double borderWidth;
+    if (isSelected) {
+      borderColor = Colors.blue;
+      borderWidth = 3;
+    } else if (isToday) {
+      borderColor = Colors.black;
+      borderWidth = 2;
+    } else {
+      borderColor = outOfMonth ? Colors.black.withOpacity(0.2) : Colors.black;
+      borderWidth = 1;
+    }
+
+    // Testo bianco sulle celle colorate, nero sul bianco, grigio fuori mese.
+    final coloredFill = !outOfMonth && fill != Colors.white;
+    final textColor =
+        outOfMonth ? Colors.grey : (coloredFill ? Colors.white : Colors.black);
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedDate = day),
+      child: Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: borderWidth),
+        ),
+        child: Center(
+          child: Text(
+            day.day.toString(),
+            style: TextStyle(
+              color: textColor,
+              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
-
-

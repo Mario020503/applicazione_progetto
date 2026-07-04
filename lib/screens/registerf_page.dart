@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
+import 'package:buzzed_buddy/widgets/small_app_logo.dart';
  
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,10 +18,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
-  final TextEditingController genderController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool termsAccepted = false;
+  String? selectedGender;
+  DateTime? _birthDate;
  
   void _showTerms(BuildContext context) {
     showDialog(
@@ -37,7 +39,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               '4. Keep your password secure\n'
               '5. Open the app BEFORE you start drinking for accurate BAC tracking\n'
               '6. Allow location access to be used in case of emergency\n\n'
-              'For more information, contact us at buzzedbuddy@gmail.com.',
             ),
           ),
           actions: [
@@ -59,9 +60,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
  
   Future<void> _requestLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      await Geolocator.requestPermission();
+    // Avvolto in try/catch: se la richiesta del permesso fallisce non deve
+    // bloccare la registrazione
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {
+      
     }
   }
  
@@ -71,8 +78,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
         title: Text("Create your account"),
-        backgroundColor: Color.fromARGB(255, 255, 196, 0),
+        backgroundColor: Colors.black,
+        foregroundColor: Color.fromARGB(255, 255, 196, 0),
         elevation: 0,
+        actions: const [SmallAppLogo()],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -83,7 +92,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _field(nameController, 'Full name', 'Enter your real name'),
               _field(usernameController, 'Username', 'Choose a username'),
               _field(weightController, 'Weight (kg)', 'Enter your weight', numbersOnly: true),
-              _field(genderController, 'Sex', 'M or F'),
+              _genderSelector(),
+              _birthDatePicker(),
               _field(passwordController, 'Password', 'Choose a password', obscure: true),
               _field(confirmPasswordController, 'Confirm password', 'Repeat your password', obscure: true),
  
@@ -137,7 +147,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (nameController.text.isEmpty ||
                       usernameController.text.isEmpty ||
                       weightController.text.isEmpty ||
-                      genderController.text.isEmpty ||
                       passwordController.text.isEmpty ||
                       confirmPasswordController.text.isEmpty) {
                     ScaffoldMessenger.of(context)
@@ -151,11 +160,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ..showSnackBar(SnackBar(content: Text('Passwords do not match')));
                     return;
                   }
-                  final sesso = genderController.text.toUpperCase();
-                  if (sesso != 'M' && sesso != 'F') {
+                  final sesso = selectedGender;
+                  if (sesso == null) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('Sex must be M or F')));
+                      ..showSnackBar(SnackBar(content: Text('Please select M or F')));
                     return;
                   }
                   if (!termsAccepted) {
@@ -164,7 +173,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ..showSnackBar(SnackBar(content: Text('You must accept the Terms of Service')));
                     return;
                   }
- 
+                  if (_birthDate == null) {
+                    ScaffoldMessenger.of(context)
+                      ..removeCurrentSnackBar()
+                      ..showSnackBar(SnackBar(content: Text('Please select your birth date')));
+                    return;
+                  }
+
+                  // Catturiamo Navigator e Messenger prima degli await:
+                  // usarli dopo, tramite il context, è fragile
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
                   await userProvider.saveUser(
                     username: usernameController.text,
@@ -172,18 +191,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     name: nameController.text,
                     gender: sesso,
                     weight: double.parse(weightController.text),
+                    birthDate: _birthDate!.toIso8601String(),
                   );
- 
+
                   await _requestLocationPermission();
- 
-                  if (!mounted) return;
- 
-                  ScaffoldMessenger.of(context)
+
+                  // niente guardia su mounted navigator/messenger sono già catturati
+
+                  // Se l'utente è minorenne, avviso gentile e non giudicante
+                  if (context.mounted && _isUnder18(_birthDate!)) {
+                    await showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('A quick note'),
+                        content: const Text(
+                          'You are under 18. This app is here for awareness, not to '
+                          'encourage drinking. Alcohol is not allowed at your age.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('I understand'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  messenger
                     ..removeCurrentSnackBar()
                     ..showSnackBar(SnackBar(content: Text('Account created! Please log in.')));
  
-                  Navigator.pushReplacement(
-                    context,
+                  navigator.pushReplacement(
                     MaterialPageRoute(builder: (_) => LoginScreen()),
                   );
                 },
@@ -204,7 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _field(TextEditingController controller, String label, String hint,
       {bool obscure = false, bool numbersOnly = false}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: TextField(
         controller: controller,
         obscureText: obscure,
@@ -213,11 +252,103 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ? [FilteringTextInputFormatter.deny(RegExp(r'\s'))]
             : null,
         decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
           labelText: label,
           hintText: hint,
+        ),
+      ),
+    );
+  }
+
+  Widget _genderSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: DropdownButtonFormField<String>(
+        initialValue: selectedGender,
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          labelText: 'Sex',
+          hintText: 'Choose M or F',
+        ),
+        items: const [
+          DropdownMenuItem(value: 'M', child: Text('M')),
+          DropdownMenuItem(value: 'F', child: Text('F')),
+        ],
+        onChanged: (value) => setState(() => selectedGender = value),
+      ),
+    );
+  }
+
+  bool _isUnder18(DateTime b) {
+    final now = DateTime.now();
+    int age = now.year - b.year;
+    if (now.month < b.month || (now.month == b.month && now.day < b.day)) age--;
+    return age < 18;
+  }
+
+  Widget _birthDatePicker() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: InkWell(
+        onTap: () async {
+          final now = DateTime.now();
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime(now.year - 20),
+            firstDate: DateTime(now.year - 100),
+            lastDate: now,
+          );
+          if (picked != null) setState(() => _birthDate = picked);
+        },
+        child: InputDecorator(
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black, width: 3),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black, width: 3),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.black, width: 3),
+            ),
+            labelText: 'Birth date',
+          ),
+          child: Text(
+            _birthDate == null
+                ? 'Select your birth date'
+                : '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
+            style: TextStyle(
+              color: _birthDate == null ? Colors.grey.shade600 : Colors.black,
+            ),
+          ),
         ),
       ),
     );
