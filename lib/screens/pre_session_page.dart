@@ -123,8 +123,14 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
         title: const Text('Before you start'),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        backgroundColor: Colors.black,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+        titleTextStyle: const TextStyle(
+          color: Color.fromARGB(255, 255, 196, 0),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
         actions: const [SmallAppLogo()],
       ),
       body: SingleChildScrollView(
@@ -136,7 +142,12 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
             // --- Sezione contatto di emergenza ---
             const Text(
               'Emergency contact',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.normal,
+                color: Colors.black,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -154,7 +165,12 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
             // --- Sezione cibo ---
             const Text(
               'Have you eaten?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.normal,
+                color: Colors.black,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -216,22 +232,35 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
   }
 
   Widget _field(TextEditingController controller, String label, String hint, {bool phone = false}) {
-    return TextField(
-      controller: controller,
-      keyboardType: phone ? TextInputType.phone : TextInputType.text,
-      inputFormatters: phone
-          ? [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ]
-          : null,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        border: const OutlineInputBorder(),
-        labelText: label,
-        hintText: hint,
-        prefixText: phone ? '+39 ' : null,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: TextField(
+        controller: controller,
+        keyboardType: phone ? TextInputType.phone : TextInputType.text,
+        inputFormatters: phone
+            ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ]
+            : null,
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          labelText: label,
+          hintText: hint,
+          prefixText: phone ? '+39 ' : null,
+        ),
       ),
     );
   }
