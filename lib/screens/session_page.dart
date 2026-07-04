@@ -32,8 +32,9 @@ class _SessionScreenState extends State<SessionScreen> {
   double _peakBAC = 0;
   late final StoricoProvider _storicoProv;
 
-  final double _orangeThreshold = 0.5;
+  double _orangeThreshold = 0.5;
   double _redThreshold = 1.5;
+  bool _isMinor = false;
   
   // Variabile locale di backup per mantenere il livello del cibo in caso di riavvio app
   late LivelloCibo _currentLivelloCibo;
@@ -69,6 +70,13 @@ class _SessionScreenState extends State<SessionScreen> {
     final user = Provider.of<UserProvider>(context, listen: false);
     if (user.livelloStress == 'high') {
       _redThreshold = 1.2;
+    }
+    // Minorenni: soglie più prudenti (0.3 / 1.0). Regola "vince la più severa":
+    // il rosso non sale sopra 1.0 nemmeno con lo stress.
+    _isMinor = user.isMinor;
+    if (_isMinor) {
+      _orangeThreshold = 0.3;
+      if (_redThreshold > 1.0) _redThreshold = 1.0;
     }
 
     // Inizializza o ripristina lo stato precedente persistito offline
@@ -176,6 +184,14 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   String get _timeToSafe {
+    if (_isMinor) {
+      // Per i minorenni niente "safe zone": riflessione/allerta.
+      if (_level == 'green') return 'Reflect on what you\'re doing';
+      if (_level == 'orange') {
+        return 'Beware of your condition, consider stopping immediately';
+      }
+      return 'Stop now and ask for help';
+    }
     if (_currentBAC <= _orangeThreshold) return 'You\'re in the safe zone';
     final hoursLeft = (_currentBAC - _orangeThreshold) / 0.15;
     final hours = hoursLeft.floor();
@@ -289,19 +305,58 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
-  Widget _buildGreenLayout() {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: const Text('Tonight'),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        elevation: 0,
-        actions: const [SmallAppLogo()],
+  // Banner fisso mostrato ai minorenni (nei layout verde e arancione).
+  Widget _buildMinorBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.white, size: 22),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Remember, alcohol is not allowed at your age.',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGreenLayout() {
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+        appBar: AppBar(
+          title: const Text('Tonight'),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.black,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+          titleTextStyle: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          actions: const [SmallAppLogo()],
+        ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            if (_isMinor) _buildMinorBanner(),
             _buildBacCard(),
             const SizedBox(height: 20),
             _buildDrinkInput(),
@@ -313,20 +368,30 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildOrangeLayout() {
     final hoursLeft = _currentBAC > _orangeThreshold ? (_currentBAC - _orangeThreshold) / 0.15 : 0.0;
 
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: const Text('Tonight'),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        elevation: 0,
-        actions: const [SmallAppLogo()],
-      ),
+        appBar: AppBar(
+          title: const Text('Tonight'),
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.black,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+          titleTextStyle: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          actions: const [SmallAppLogo()],
+        ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -339,33 +404,35 @@ class _SessionScreenState extends State<SessionScreen> {
               child: _buildBacCard(),
             ),
             const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade700,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      hoursLeft > 1
-                          ? 'You\'ve exceeded the legal driving limit.\nConsider stopping, it\'ll take over an hour to reach the safe zone.'
-                          : 'You\'ve exceeded the legal driving limit.\nYou\'re above the safe driving threshold.',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
+            _isMinor
+                ? _buildMinorBanner()
+                : Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade700,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            hoursLeft > 1
+                                ? 'You\'ve exceeded the legal driving limit.\nConsider stopping, it\'ll take over an hour to reach the safe zone.'
+                                : 'You\'ve exceeded the legal driving limit.\nYou\'re above the safe driving threshold.',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
             const SizedBox(height: 16),
             _buildDrinkInput(),
             const SizedBox(height: 16),
@@ -376,8 +443,9 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRedLayout() {
     return Scaffold(
@@ -479,7 +547,17 @@ class _SessionScreenState extends State<SessionScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(_timeToSafe, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+          Text(
+            _timeToSafe,
+            textAlign: TextAlign.center,
+            style: _isMinor
+                ? TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _level == 'green' ? Colors.black87 : Colors.red,
+                  )
+                : const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
         ],
       ),
     );
