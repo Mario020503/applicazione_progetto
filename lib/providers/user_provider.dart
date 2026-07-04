@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,14 +15,28 @@ class UserProvider extends ChangeNotifier {
   String? name;
   String? gender;
   double? weight;
+  String? birthDate; // ISO 'yyyy-MM-dd...', usato per calcolare isMinor
   bool isUserLogged = false;
  
   String? nomeContatto;
   String? telefonoContatto;
  
-  // 'normal' → arancione a 0.5, rosso a 1.5
-  // 'high'   → arancione a 0.3, rosso a 1.2
+  // 'normal' → rosso a 1.5
+  // 'high'   → rosso a 1.2 (l'arancione resta 0.5)
   String livelloStress = 'normal';
+
+  // Vero se l'utente è minorenne, calcolato dalla data di nascita.
+  bool get isMinor {
+    if (birthDate == null) return false;
+    final b = DateTime.tryParse(birthDate!);
+    if (b == null) return false;
+    final now = DateTime.now();
+    int age = now.year - b.year;
+    if (now.month < b.month || (now.month == b.month && now.day < b.day)) {
+      age--;
+    }
+    return age < 18;
+  }
 
   Map<String, Map<String, dynamic>> _users = {};
 
@@ -41,6 +56,20 @@ class UserProvider extends ChangeNotifier {
     return 'acc_${timestamp}_$nonce';
   }
 
+  // --- HASHING PASSWORD ---
+  // Non salviamo MAI la password in chiaro: salviamo un hash SHA-256 con un
+  // "sale" casuale per utente. Al login si confrontano gli hash, mai il testo.
+  String _generateSalt() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    return base64Url.encode(bytes);
+  }
+
+  String _hashPassword(String password, String salt) {
+    final bytes = utf8.encode('$salt$password');
+    return sha256.convert(bytes).toString();
+  }
+
   Map<String, Map<String, dynamic>> _decodeUsers(String raw) {
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     return decoded.map(
@@ -53,20 +82,31 @@ class UserProvider extends ChangeNotifier {
 
   Map<String, dynamic> _buildProfileMap({
     required String username,
-    required String password,
+    String? password,
     required String name,
     required String gender,
     required double weight,
+    String? birthDate,
   }) {
     final existing = _users[username] ?? <String, dynamic>{};
+    // Se arriva una nuova password (registrazione o cambio), la si hasha con un
+    // nuovo sale; altrimenti si mantengono l'hash e il sale già salvati.
+    String? passwordHash = existing['password'] as String?;
+    String? salt = existing['salt'] as String?;
+    if (password != null && password.isNotEmpty) {
+      salt = _generateSalt();
+      passwordHash = _hashPassword(password, salt);
+    }
     return {
       ...existing,
       'accountId': existing['accountId'] ?? _createAccountId(),
       'username': username,
-      'password': password,
+      'password': passwordHash,
+      'salt': salt,
       'name': name,
       'gender': gender,
       'weight': weight,
+      'birthDate': birthDate ?? existing['birthDate'],
       'nomeContatto': existing['nomeContatto'],
       'telefonoContatto': existing['telefonoContatto'],
       'livelloStress': existing['livelloStress'] ?? 'normal',
@@ -80,6 +120,7 @@ class UserProvider extends ChangeNotifier {
       name = null;
       gender = null;
       weight = null;
+      birthDate = null;
       nomeContatto = null;
       telefonoContatto = null;
       livelloStress = 'normal';
@@ -91,6 +132,7 @@ class UserProvider extends ChangeNotifier {
     name = profile['name'] as String?;
     gender = profile['gender'] as String?;
     weight = (profile['weight'] is num) ? (profile['weight'] as num).toDouble() : double.tryParse(profile['weight']?.toString() ?? '');
+    birthDate = profile['birthDate'] as String?;
     nomeContatto = profile['nomeContatto'] as String?;
     telefonoContatto = profile['telefonoContatto'] as String?;
     livelloStress = profile['livelloStress'] as String? ?? 'normal';
@@ -142,10 +184,11 @@ class UserProvider extends ChangeNotifier {
  
   Future<void> saveUser({
     required String username,
-    required String password,
+    String? password,
     required String name,
     required String gender,
     required double weight,
+    String? birthDate,
     bool setAsCurrentUser = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
@@ -157,6 +200,7 @@ class UserProvider extends ChangeNotifier {
       name: name,
       gender: gender,
       weight: weight,
+      birthDate: birthDate,
     );
 
     await _persistUsers(prefs);
@@ -187,7 +231,12 @@ class UserProvider extends ChangeNotifier {
       return false;
     }
 
-    if (user['password'] != password) {
+    final salt = user['salt'] as String?;
+    final storedHash = user['password'] as String?;
+    if (salt == null || storedHash == null) {
+      return false; // account in vecchio formato senza hash: va ricreato
+    }
+    if (_hashPassword(password, salt) != storedHash) {
       return false;
     }
 
@@ -204,12 +253,8 @@ class UserProvider extends ChangeNotifier {
     return true;
   }
  
-  Future<String> getPassword() async {
-    if (username == null) {
-      return '';
-    }
-    return _users[username]?['password'] as String? ?? '';
-  }
+  // getPassword rimosso: con l'hashing non esiste più una password in chiaro
+  // da restituire; il confronto avviene sugli hash dentro authenticate().
  
   Future<void> login() async {
     if (username == null) {
