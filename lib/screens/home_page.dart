@@ -112,6 +112,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           _selectedIndex == 0
               ? 'Home'
@@ -322,40 +323,6 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(child: Text('Settings and activities')),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Calendar'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() { _selectedIndex = 1; });
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() { _selectedIndex = 2; });
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () => _confirmAndLogout(context),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -379,8 +346,9 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
+    if (!mounted) return;
     if (doLogout == true) {
-      _logout(ctx);
+      _logout(context);
     }
   }
 

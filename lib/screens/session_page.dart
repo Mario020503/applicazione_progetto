@@ -335,8 +335,8 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Widget _buildGreenLayout() {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
         appBar: AppBar(
@@ -375,8 +375,8 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _buildOrangeLayout() {
     final hoursLeft = _currentBAC > _orangeThreshold ? (_currentBAC - _orangeThreshold) / 0.15 : 0.0;
 
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: const Color.fromARGB(255, 255, 196, 0),
         appBar: AppBar(

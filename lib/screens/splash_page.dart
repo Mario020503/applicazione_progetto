@@ -23,9 +23,9 @@ class SplashScreen extends StatelessWidget {
  
             Image.asset(
               'assets/images/LogoBB.png',
-              width: MediaQuery.of(context).size.width * 0.35,
+              width: MediaQuery.of(context).size.width * 0.98,
             ),
- 
+
             if (user.username != null)
               Text(
                 "Welcome back, ${user.username}!",

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/widgets/small_app_logo.dart';
- 
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
   @override

@@ -62,8 +62,8 @@ class HrPlot extends StatelessWidget {
           drawVerticalLine: true,
           horizontalInterval: yInterval,
           verticalInterval: xInterval,
-          getDrawingHorizontalLine: (value) => FlLine(color: plotYellow.withOpacity(0.18), strokeWidth: 1),
-          getDrawingVerticalLine: (value) => FlLine(color: plotYellow.withOpacity(0.08), strokeWidth: 1),
+          getDrawingHorizontalLine: (value) => FlLine(color: plotYellow.withValues(alpha: 0.18), strokeWidth: 1),
+          getDrawingVerticalLine: (value) => FlLine(color: plotYellow.withValues(alpha: 0.08), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -117,8 +117,8 @@ class HrPlot extends StatelessWidget {
         borderData: FlBorderData(
           show: true,
           border: Border(
-            left: BorderSide(color: plotYellow.withOpacity(0.6)),
-            bottom: BorderSide(color: plotYellow.withOpacity(0.6)),
+            left: BorderSide(color: plotYellow.withValues(alpha: 0.6)),
+            bottom: BorderSide(color: plotYellow.withValues(alpha: 0.6)),
             right: BorderSide.none,
             top: BorderSide.none,
           ),
@@ -150,8 +150,8 @@ class HrPlot extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  lineColor.withOpacity(0.35),
-                  lineColor.withOpacity(0.0),
+                  lineColor.withValues(alpha: 0.35),
+                  lineColor.withValues(alpha: 0.0),
                 ],
               ),
             ),

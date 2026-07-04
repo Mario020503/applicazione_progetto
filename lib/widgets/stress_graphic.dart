@@ -93,7 +93,7 @@ class StressPlot extends StatelessWidget {
                 drawVerticalLine: false,
                 horizontalInterval: 25,
                 getDrawingHorizontalLine: (v) =>
-                    FlLine(color: plotYellow.withOpacity(0.18), strokeWidth: 1),
+                    FlLine(color: plotYellow.withValues(alpha: 0.18), strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(

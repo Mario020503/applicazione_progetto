@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/storico_provider.dart';
-import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -257,7 +256,7 @@ class _CalendarPageState extends State<CalendarPage> {
       borderColor = Colors.black;
       borderWidth = 2;
     } else {
-      borderColor = outOfMonth ? Colors.black.withOpacity(0.2) : Colors.black;
+      borderColor = outOfMonth ? Colors.black.withValues(alpha: 0.2) : Colors.black;
       borderWidth = 1;
     }
 
