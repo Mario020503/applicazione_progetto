@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:buzzed_buddy/providers/user_provider.dart';
-import 'package:buzzed_buddy/widgets/small_app_logo.dart';
- 
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
   @override
@@ -61,10 +60,11 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = Provider.of<UserProvider>(context, listen: false);
     await user.saveUser(
       username: usernameController.text,
-      // Se la password è vuota, mantieni quella esistente
+      // Se il campo è vuoto non tocchiamo la password (saveUser mantiene l'hash
+      // esistente); se compilato, verrà ri-hashata con un nuovo sale.
       password: passwordController.text.isNotEmpty
           ? passwordController.text
-          : await user.getPassword(),
+          : null,
       name: nameController.text,
       gender: gender,
       weight: double.parse(weightController.text),
@@ -84,11 +84,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-      appBar: AppBar(
-        title: const Text("Profile Settings"),
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        actions: const [SmallAppLogo()],
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : Center(
@@ -137,9 +132,19 @@ class _SettingsPageState extends State<SettingsPage> {
         obscureText: obscure,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           filled: true,
           fillColor: Colors.white,
-          border: const OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black, width: 3),
+          ),
           labelText: label,
           hintText: hint,
         ),
