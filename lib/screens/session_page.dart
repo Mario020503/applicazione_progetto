@@ -38,8 +38,10 @@ class _SessionScreenState extends State<SessionScreen> {
   
   late LivelloCibo _currentLivelloCibo;
 
+  // Fattore che riduce l'alcol assorbito in base al cibo. I coefficienti sono
+  // EURISTICI (stime ragionevoli, non da letteratura): il cibo rallenta
+  // l'assorbimento e abbassa il picco, ma questi numeri sono una nostra scelta.
   double get _foodFactor {
-    // CORRETTO: Rimossa la label 'key:' orfana che generava il warning
     switch (_currentLivelloCibo) {
       case LivelloCibo.niente:   return 1.0;
       case LivelloCibo.spuntino: return 0.9;
@@ -113,37 +115,59 @@ class _SessionScreenState extends State<SessionScreen> {
   void dispose() {
     _timer?.cancel();
     if (_peakBAC > 0) {
-      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+      _storicoProv.salvaSerata(_sessionStart, _peakBAC);
     }
     super.dispose();
   }
 
   void _calculateBAC() {
     final user = Provider.of<UserProvider>(context, listen: false);
-    final hoursElapsed = DateTime.now().difference(_sessionStart).inMinutes / 60;
+    final now = DateTime.now();
 
+    // Fattore di Widmark per sesso (frazione d'acqua corporea) e peso.
     final r = (user.gender?.toUpperCase() == 'M') ? 0.68 : 0.55;
     final w = user.weight ?? 70.0;
 
-    double totalGrams = 0;
-    for (final drink in user.currentSessionDrinks) {
-      totalGrams += (drink['ml'] as num) * (drink['abv'] as num) * 0.789;
+    // MODELLO. L'eliminazione dell'alcol e' di ordine zero: il corpo smaltisce
+    // circa 0.15 g/L per ora finche' il tasso e' sopra zero, e NON di piu' se
+    // hai piu' drink insieme. Quindi integriamo passo passo sugli orari reali
+    // dei drink: tra un drink e il successivo sottraiamo l'eliminazione e non
+    // scendiamo sotto zero, poi aggiungiamo il nuovo drink. Cosi' i drink presi
+    // tardi non vengono sottostimati (vecchio bug dell'unico orologio dal primo
+    // drink) e non si "smaltisce" alcol nei periodi in cui il tasso era gia' a
+    // zero. L'assorbimento resta considerato istantaneo (semplificazione).
+    // Il risultato e' trattato come g/L, di fatto il per mille (il sangue ha
+    // densita' circa 1, quindi g/kg e g/L coincidono in pratica).
+    final drinks = List<dynamic>.from(user.currentSessionDrinks);
+    drinks.sort((a, b) {
+      final ta = DateTime.tryParse(a['time'] ?? '') ?? now;
+      final tb = DateTime.tryParse(b['time'] ?? '') ?? now;
+      return ta.compareTo(tb);
+    });
+
+    double bac = 0.0;
+    DateTime? lastTime;
+    for (final drink in drinks) {
+      final drinkTime = DateTime.tryParse(drink['time'] ?? '') ?? now;
+      if (lastTime != null) {
+        bac -= 0.15 * (drinkTime.difference(lastTime).inMinutes / 60);
+        if (bac < 0) bac = 0;
+      }
+      final grams = (drink['ml'] as num) * (drink['abv'] as num) * 0.789 * _foodFactor;
+      bac += grams / (w * r);
+      lastTime = drinkTime;
+    }
+    // Eliminazione dall'ultimo drink fino ad adesso.
+    if (lastTime != null) {
+      bac -= 0.15 * (now.difference(lastTime).inMinutes / 60);
     }
 
-    totalGrams *= _foodFactor;
-
-    if (totalGrams == 0) {
-      setState(() => _currentBAC = 0);
-      return;
-    }
-
-    double bac = (totalGrams / (w * r)) - (0.15 * hoursElapsed);
     final nuovoBac = bac < 0 ? 0.0 : bac;
     setState(() => _currentBAC = nuovoBac);
 
     if (nuovoBac > _peakBAC) {
       _peakBAC = nuovoBac;
-      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+      _storicoProv.salvaSerata(_sessionStart, _peakBAC);
     }
   }
 
@@ -235,6 +259,11 @@ class _SessionScreenState extends State<SessionScreen> {
         '$locationLink\n\n'
         '- Sent automatically by BuzzedBuddy';
 
+    // INVIO SMS. Su Android proviamo l'invio automatico tramite un canale
+    // nativo (richiede il codice nativo lato piattaforma e il permesso SMS);
+    // su tutte le altre piattaforme apriamo l'app dei messaggi gia' compilata,
+    // da inviare a mano. La posizione e' opzionale: se manca il permesso il
+    // messaggio parte comunque con "Location unavailable".
     try {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         await _smsChannel.invokeMethod('sendSmsViaDefaultApp', {
@@ -266,7 +295,7 @@ class _SessionScreenState extends State<SessionScreen> {
   void _endNight() async {
     final user = Provider.of<UserProvider>(context, listen: false);
     if (_peakBAC > 0) {
-      _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
+      _storicoProv.salvaSerata(_sessionStart, _peakBAC);
     }
     
     if (user.accountId != null) {
@@ -436,70 +465,90 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Widget _buildRedLayout() {
-    return Scaffold(
-      backgroundColor: Colors.red.shade900,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'WARNING',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 4,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '${_currentBAC.toStringAsFixed(2)} g/L',
-                  style: const TextStyle(fontSize: 52, color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _timeToSafe,
-                  style: const TextStyle(fontSize: 22, color: Colors.white70),
-                ),
-                const SizedBox(height: 30),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'STOP DRINKING IMMEDIATELY.\nAsk someone you trust for help.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: _callingForHelp ? null : _callForHelp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.red.shade900,
-                    minimumSize: const Size(double.infinity, 120),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: _callingForHelp
-                      ? CircularProgressIndicator(color: Colors.red.shade900)
-                      : const Text(
-                          'CALL FOR HELP',
-                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
+    // In rosso l'allarme non si scavalca: blocchiamo anche il tasto indietro di
+    // sistema. L'unica uscita e' un testo piccolo in fondo alla schermata, che
+    // noti solo se sei abbastanza lucido da cercarlo.
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.red.shade900,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 20),
+                      const Text(
+                        'WARNING',
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 4,
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        '${_currentBAC.toStringAsFixed(2)} g/L',
+                        style: const TextStyle(fontSize: 52, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _timeToSafe,
+                        style: const TextStyle(fontSize: 22, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 30),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'STOP DRINKING IMMEDIATELY.\nAsk someone you trust for help.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      ElevatedButton(
+                        onPressed: _callingForHelp ? null : _callForHelp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.red.shade900,
+                          minimumSize: const Size(double.infinity, 120),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: _callingForHelp
+                            ? CircularProgressIndicator(color: Colors.red.shade900)
+                            : const Text(
+                                'CALL FOR HELP',
+                                style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+              // Unica via d'uscita, in fondo e volutamente discreta.
+              TextButton(
+                onPressed: _endNight,
+                child: const Text(
+                  'End the night',
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ),
@@ -618,7 +667,7 @@ class _SessionScreenState extends State<SessionScreen> {
         final drink = user.currentSessionDrinks[index];
         final time = DateTime.parse(drink['time']);
         return Dismissible(
-          key: Key('$index-${time.toString()}'),
+          key: ValueKey(drink['time']),
           direction: DismissDirection.endToStart,
           background: Container(
             alignment: Alignment.centerRight,
@@ -653,7 +702,7 @@ class _SessionScreenState extends State<SessionScreen> {
             margin: const EdgeInsets.symmetric(vertical: 4),
             child: ListTile(
               title: Text(drink['name']),
-              subtitle: Text('${time.hour}:${time.minute.toString().padLeft(2, '0')}'),
+              subtitle: Text('${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'),
               trailing: Text('x${drink['quantity']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             ),
           ),
