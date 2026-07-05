@@ -152,11 +152,17 @@ class UserProvider extends ChangeNotifier {
       final legacyUsername = prefs.getString('username');
       final legacyPassword = prefs.getString('password');
       if (legacyUsername != null && legacyPassword != null) {
+        // Migrazione di un vecchio account con password in chiaro: la hashiamo
+        // subito con un sale nuovo, altrimenti authenticate() lo rifiuterebbe
+        // per sempre (nessun sale significa login impossibile). E cancelliamo
+        // la vecchia password in chiaro dal disco.
+        final legacySalt = _generateSalt();
         _users = {
           legacyUsername: {
             'accountId': legacyUsername,
             'username': legacyUsername,
-            'password': legacyPassword,
+            'password': _hashPassword(legacyPassword, legacySalt),
+            'salt': legacySalt,
             'name': prefs.getString('name'),
             'gender': prefs.getString('gender'),
             'weight': double.tryParse(prefs.getString('weight') ?? ''),
@@ -166,6 +172,7 @@ class UserProvider extends ChangeNotifier {
           },
         };
         await _persistUsers(prefs);
+        await prefs.remove('password');
       }
     }
 
@@ -182,6 +189,22 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
  
+  // True se esiste gia' un account con questo username: serve alla
+  // registrazione per non sovrascrivere un utente gia' presente.
+  bool usernameExists(String username) => _users.containsKey(username);
+
+  // True se il testo passato coincide con la password attuale dell'utente
+  // loggato. Confronto sugli hash, senza mai avere la password in chiaro.
+  bool matchesCurrentPassword(String password) {
+    if (username == null) return false;
+    final user = _users[username!];
+    if (user == null) return false;
+    final salt = user['salt'] as String?;
+    final storedHash = user['password'] as String?;
+    if (salt == null || storedHash == null) return false;
+    return _hashPassword(password, salt) == storedHash;
+  }
+
   Future<void> saveUser({
     required String username,
     String? password,
@@ -256,17 +279,8 @@ class UserProvider extends ChangeNotifier {
   // getPassword rimosso: con l'hashing non esiste più una password in chiaro
   // da restituire; il confronto avviene sugli hash dentro authenticate().
  
-  Future<void> login() async {
-    if (username == null) {
-      return;
-    }
-    isUserLogged = true;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isUserLogged', true);
-    await prefs.setString(_currentUsernameKey, username!);
-    await loadCurrentSessionIfAny();
-    notifyListeners();
-  }
+  // Il vecchio metodo login() senza verifica delle credenziali e' stato
+  // rimosso: l'unico ingresso valido e' authenticate(), che controlla l'hash.
  
   Future<void> logout() async {
     isUserLogged = false;
@@ -283,11 +297,11 @@ class UserProvider extends ChangeNotifier {
   }) async {
     nomeContatto = nome;
     telefonoContatto = telefono;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('nomeContatto', nome);
-    await prefs.setString('telefonoContatto', telefono);
 
+    // La fonte di verita' e' il profilo del singolo account: niente piu'
+    // chiavi globali condivise tra utenti diversi.
     if (username != null) {
+      final prefs = await SharedPreferences.getInstance();
       final profile = _users[username!];
       if (profile != null) {
         profile['nomeContatto'] = nome;
@@ -301,10 +315,11 @@ class UserProvider extends ChangeNotifier {
  
   Future<void> saveStressLevel(String level) async {
     livelloStress = level;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('livelloStress', level);
 
+    // Anche lo stress vive solo nel profilo dell'account, non in una chiave
+    // globale condivisa tra utenti diversi.
     if (username != null) {
+      final prefs = await SharedPreferences.getInstance();
       final profile = _users[username!];
       if (profile != null) {
         profile['livelloStress'] = level;
@@ -372,6 +387,30 @@ class UserProvider extends ChangeNotifier {
     }
 
     currentSessionDrinks = []; // Svuota l'array locale in RAM
+
+    // Il contatto di emergenza vive solo per la durata della serata: a fine
+    // sessione lo cancelliamo davvero, come promesso all'utente in pre-session.
+    await _clearEmergencyContact(prefs);
+
     notifyListeners();
+  }
+
+  // Cancella il contatto di emergenza dallo stato in RAM, dal profilo
+  // dell'account su disco e da eventuali vecchie chiavi globali residue.
+  Future<void> _clearEmergencyContact(SharedPreferences prefs) async {
+    nomeContatto = null;
+    telefonoContatto = null;
+
+    if (username != null) {
+      final profile = _users[username!];
+      if (profile != null) {
+        profile['nomeContatto'] = null;
+        profile['telefonoContatto'] = null;
+        await _persistUsers(prefs);
+      }
+    }
+
+    await prefs.remove('nomeContatto');
+    await prefs.remove('telefonoContatto');
   }
 }
