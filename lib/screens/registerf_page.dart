@@ -29,16 +29,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Terms of Service'),
+          title: Text('Terms & Conditions'),
           content: SingleChildScrollView(
             child: Text(
               'By accepting these terms, you agree to:\n\n'
-              '1. Provide accurate personal information\n'
-              '2. Use this app without replacing medical advice\n'
-              '3. Not share your data with third parties\n'
-              '4. Keep your password secure\n'
-              '5. Open the app BEFORE you start drinking for accurate BAC tracking\n'
-              '6. Allow location access to be used in case of emergency\n\n'
+              '1. Provide accurate personal information, including your age, weight, and profile details.\n'
+              '2. Understand that Buzzed Buddy is for awareness and educational purposes only. It is not a medical device, not a certified breathalyzer, and the BAC estimate is approximate.\n'
+              '3. Not rely on this app to decide whether it is safe to drive, operate machinery, or take any other risky action. The only safe level for driving is zero alcohol.\n'
+              '4. Understand that the help feature does not replace emergency services. In a real emergency, call your local emergency number immediately.\n'
+              '5. Take responsibility for your own alcohol consumption and comply with local laws, age restrictions, and safety guidance. The app does not encourage excessive drinking or underage drinking.\n'
+              '6. Understand that your data is handled only for the purpose of providing the app experience, and it remains on the device unless otherwise stated.\n'
+              '7. Understand that the app authors are not responsible for decisions made based on the app, and location access is only used to support emergency assistance if you enable it.\n\n'
             ),
           ),
           actions: [
@@ -125,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: GestureDetector(
                         onTap: () => _showTerms(context),
                         child: Text(
-                          'I accept the Terms of Service',
+                          'I accept the Terms & Conditions',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -170,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (!termsAccepted) {
                     ScaffoldMessenger.of(context)
                       ..removeCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text('You must accept the Terms of Service')));
+                      ..showSnackBar(SnackBar(content: Text('You must accept the Terms & Conditions')));
                     return;
                   }
                   if (_birthDate == null) {
@@ -182,15 +183,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   // Catturiamo Navigator e Messenger prima degli await:
                   // usarli dopo, tramite il context, è fragile
+                  final username = usernameController.text.trim();
+                  if (username.isEmpty) {
+                    ScaffoldMessenger.of(context)
+                      ..removeCurrentSnackBar()
+                      ..showSnackBar(const SnackBar(content: Text('Please enter a username')));
+                    return;
+                  }
+
+                  // Peso: conversione sicura (accetta la virgola) e controllo di
+                  // plausibilita', cosi' non crasha e non arriva uno 0 al calcolo BAC.
+                  final weight = double.tryParse(weightController.text.replaceAll(',', '.'));
+                  if (weight == null || weight < 20 || weight > 400) {
+                    ScaffoldMessenger.of(context)
+                      ..removeCurrentSnackBar()
+                      ..showSnackBar(const SnackBar(content: Text('Enter a valid weight in kg')));
+                    return;
+                  }
+
                   final navigator = Navigator.of(context);
                   final messenger = ScaffoldMessenger.of(context);
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+                  // Non sovrascrivere un account gia' esistente con lo stesso username.
+                  if (userProvider.usernameExists(username)) {
+                    messenger
+                      ..removeCurrentSnackBar()
+                      ..showSnackBar(const SnackBar(content: Text('This username is already taken')));
+                    return;
+                  }
+
                   await userProvider.saveUser(
-                    username: usernameController.text,
+                    username: username,
                     password: passwordController.text,
                     name: nameController.text,
                     gender: sesso,
-                    weight: double.parse(weightController.text),
+                    weight: weight,
                     birthDate: _birthDate!.toIso8601String(),
                   );
 
