@@ -9,7 +9,7 @@ import 'package:buzzed_buddy/screens/settings_page.dart';
 import 'package:buzzed_buddy/screens/pre_session_page.dart';
 import 'package:buzzed_buddy/screens/session_page.dart'; 
 import 'package:buzzed_buddy/widgets/small_app_logo.dart';
-import 'package:buzzed_buddy/widgets/hr_graphic.dart';
+import 'package:buzzed_buddy/widgets/hrv_graphic.dart';
 import 'package:buzzed_buddy/widgets/stress_graphic.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,28 +20,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late String _selectedDay; 
+  String _selectedDay = "2026-06-24";
   int _selectedIndex = 0;
 
   final List<String> _daysRange = [
-    "2026-06-05",
-    "2026-06-07",
-    "2026-06-08",
-    "2026-06-09",
-    "2026-06-10", 
-    "2026-06-11",
-    "2026-06-12",
-    "2026-06-13",
-    "2026-06-14",
-    "2026-06-15",
-    "2026-06-16",
-    "2026-06-17",
-    "2026-06-18",
-    "2026-06-19",
-    "2026-06-20",
-    "2026-06-21",
-    "2026-06-22",
-    "2026-06-23",
     "2026-06-24",
     "2026-06-25",
     "2026-06-26",
@@ -63,20 +45,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    
-    final DateTime yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final String computedYesterdayStr = 
-        '${yesterday.year.toString().padLeft(4, '0')}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
-    
-    _selectedDay = _daysRange.contains(computedYesterdayStr) ? computedYesterdayStr : _daysRange.first;
-
-    Future.microtask(() async {
-      if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final dp = Provider.of<DataProvider>(context, listen: false);
       await dp.fetchLucaHeartDataForDay(_selectedDay);
+      await dp.computeBaselineIfNeeded();
     });
   }
 
+  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELL'HRV
   void _showHrvInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -108,25 +84,25 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Heart Rate Variability (HRV) measures the milli-second time variations between consecutive heartbeats.',
+                  'Heart Rate Variability (HRV) is the small variation, in milliseconds, in the time between consecutive heartbeats. Higher variability usually reflects a more rested, recovered state.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Full 24-Hour Timeline:',
+                  'How we estimate it:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'The application maps all available records throughout day and night. Whenever the wearable device is active and tracking, the data points are captured and displayed chronologically to form a coherent autonomic overview.',
+                  'We use RMSSD, a standard HRV measure that mainly reflects parasympathetic (vagal) activity, the rest and recover side of your nervous system. Since the wearable gives averaged heart rate rather than every single beat, our value is a close estimate, not a clinical measurement.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Mathematical Standard:',
+                  'Hourly view:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'Calculated via the root mean square of successive differences (rMSSD) standard over 5-minute epochs and smoothed hour-by-hour.',
+                  'Readings are grouped into short windows and averaged hour by hour, so the chart shows a clean trend instead of noisy single spikes.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
@@ -137,6 +113,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELLO STRESS STILE GARMIN (FIRSTBEAT)
   void _showStressInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -151,7 +128,7 @@ class _HomePageState extends State<HomePage> {
                   Icon(Icons.waves, color: Color(0xFF89453C)),
                   SizedBox(width: 8),
                   Text(
-                    'Stress Profile',
+                    'What is Stress?',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
                 ],
@@ -168,25 +145,25 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Computes a continuous score from 5 to 100 to map autonomic nervous system strain and sympathetic fluctuations.',
+                  'This is our own estimate of your stress level, not a medical measurement.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'Attenuated HR Modulation:',
+                  'How it works:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'The baseline score is governed by the percentage deficit of your instant HRV against your historical template. Direct heart rate elevations above your Resting HR are processed non-linearly using mathematical square-root damping, preventing standard daily physical movements from over-inflating or saturating your stress profile.',
+                  'We look at your heart rate variability and at how much your heart rate is above your resting level, and turn them into a single score, from calm at the low end to high strain at the top.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  '15-Minute Resolution:',
+                  '15 minute view:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'Processed in responsive 15-minute intervals. Missing data windows are kept blank to accurately represent sensor detachment without distorting your real profile timeline.',
+                  'The timeline is split into 15 minute segments. When the device is taken off and there is no data, that segment is left blank instead of showing an invented value.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
@@ -203,8 +180,6 @@ class _HomePageState extends State<HomePage> {
     final storico = Provider.of<StoricoProvider>(context);
     final dataProvider = Provider.of<DataProvider>(context); 
 
-    final String calculatedHrvStr = dataProvider.calculateHRV.toStringAsFixed(1);
-
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
@@ -214,12 +189,14 @@ class _HomePageState extends State<HomePage> {
               ? 'Home'
               : _selectedIndex == 1
                   ? 'Calendar'
-                  : _selectedIndex == 2
-                      ? 'Settings'
-                      : 'Profile',
-          style: const TextStyle(color: Color.fromARGB(255, 255, 196, 0)),
+                  : 'Settings',
+          style: const TextStyle(
+            color: Color.fromARGB(255, 255, 196, 0),
+          ),
         ),
-        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+        iconTheme: const IconThemeData(
+          color: Color.fromARGB(255, 255, 196, 0),
+        ),
         backgroundColor: Colors.black,
         elevation: 0,
         actions: const [SmallAppLogo()],
@@ -232,6 +209,7 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: Colors.white,
             onRefresh: () async {
               await dataProvider.fetchLucaHeartDataForDay(_selectedDay);
+              await dataProvider.computeBaselineIfNeeded();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -245,7 +223,8 @@ class _HomePageState extends State<HomePage> {
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    
+                    _buildDailyNudge(storico),
+
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
@@ -284,11 +263,13 @@ class _HomePageState extends State<HomePage> {
                         ),
                       )
                     else ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center, 
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 10,
+                        runSpacing: 8,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
@@ -297,31 +278,30 @@ class _HomePageState extends State<HomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  "Average HRV: $calculatedHrvStr ms",
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                                  "Average HRV: ${dataProvider.calculateHRV.toStringAsFixed(1)} ms",
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
                                 ),
                                 const SizedBox(width: 5),
                                 GestureDetector(
                                   onTap: () => _showHrvInfoDialog(context),
                                   child: const Icon(
                                     Icons.info_outline,
-                                    size: 18,
+                                    size: 16,
                                     color: Colors.black87,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               "Resting HR: ${dataProvider.restingHrValue} BPM",
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
                             ),
                           ),
                         ],
@@ -343,7 +323,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 20),
                       Text(
                         'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} days · '
-                        'today $calculatedHrvStr ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
+                        'today ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
                         style: const TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                       const SizedBox(height: 12),
@@ -384,9 +364,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: StressPlot(
                           points: dataProvider.stressPoints,
-                          precomputedGroups: dataProvider.cachedBarGroups,
-                          emptyMessage: 'Initializing high-resolution telemetry...',
+                          emptyMessage: 'No stress data for this day',
                           isLoading: dataProvider.isBaselineLoading,
+                          showEmptyLoading: false,
                         ),
                       ),
                     ],
@@ -445,7 +425,6 @@ class _HomePageState extends State<HomePage> {
           ),
           const CalendarPage(),
           const SettingsPage(),
-          const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -554,6 +533,43 @@ class _HomePageState extends State<HomePage> {
             child: TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Continue anyway', style: TextStyle(fontSize: 12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Elogio positivo: mostrato SOLO quando la serie pulita è reale e sensata.
+  // - storico non vuoto: c'è almeno una serata registrata, quindi i giorni
+  //   puliti sono veri (non "zero dati", che darebbe il valore-tetto 366);
+  // - < 365: esclude comunque il valore-tetto per sicurezza;
+  // - >= 3: elogiamo solo una serie che vale la pena.
+  Widget _buildDailyNudge(StoricoProvider storico) {
+    final giorni = storico.giorniPuliti;
+    if (storico.storico.isEmpty || giorni < 3 || giorni >= 365) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.92,
+      margin: const EdgeInsets.only(top: 4, bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade600,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.eco, color: Colors.white),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$giorni days without drinking, nice work!',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
           ),
         ],
