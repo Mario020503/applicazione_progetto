@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/heart_rate.dart';
 import '../models/resting_hr.dart';
@@ -19,14 +20,15 @@ class DataProvider with ChangeNotifier {
 
   List<HeartRate> _cachedHrvPoints = [];
   List<HeartRate> _cachedStressPoints = [];
+  List<BarChartGroupData> _cachedBarGroups = []; 
 
   bool get isBaselineLoading => _isBaselineLoading;
 
   double? _baseline;
   static const String _baselineCacheKey = 'hrvBaseline';
   static const double baselineStressFactor = 0.85;
-  static const String _baselineStart = '2026-06-04';
-  static const String _baselineEnd = '2026-07-04';
+  static const String _baselineStart = '2026-06-05';
+  static const String _baselineEnd = '2026-07-05';
 
   List<HeartRate> get heartRates => _heartRates;
   List<RestingHeartRate> get restingHeartRates => _restingHeartRates;
@@ -44,12 +46,17 @@ class DataProvider with ChangeNotifier {
 
   List<HeartRate> get hrvPoints => _cachedHrvPoints;
   List<HeartRate> get stressPoints => _cachedStressPoints;
+  List<BarChartGroupData> get cachedBarGroups => _cachedBarGroups; 
 
   Future<void> fetchLucaHeartDataForDay(String day) async {
     _isLoading = true;
     notifyListeners(); 
 
     try {
+      if (_baseline == null || _baseline == 0) {
+        await computeBaselineIfNeeded();
+      }
+
       String? token = await _impactService.login(_myUsername, _myPassword);
       
       if (token != null) {
@@ -87,12 +94,16 @@ class DataProvider with ChangeNotifier {
         }
 
         _cachedHrvPoints = _aggregateData(windowMinutes: 60);
-        _cachedStressPoints = _calculateStressTimeline(windowMinutes: 15);
+        // DOWNSAMPLING: Calcolo dello stress tarato su finestre ottimali da 15 minuti
+        _cachedStressPoints = _calculateHighResolutionStress(windowMinutes: 15);
+        
+        _generateAndCacheBarGroups();
       }
     } catch (e) {
       debugPrint("DataProvider Errore: $e");
       _cachedHrvPoints = [];
       _cachedStressPoints = [];
+      _cachedBarGroups = [];
     }
 
     _isLoading = false;
@@ -190,48 +201,117 @@ class DataProvider with ChangeNotifier {
     return results;
   }
 
-  // NUOVO ENGINE DI STRESS MODELLATO SUI PARAMETRI DI DISTRIBUZIONE GARMIN
-  List<HeartRate> _calculateStressTimeline({required int windowMinutes}) {
-    List<HeartRate> hrvBaselinePoints = _calculateRawRmssdPoints(windowMinutes);
+  List<HeartRate> _calculateHighResolutionStress({required int windowMinutes}) {
+    List<HeartRate> hrvPointsForWindow = _calculateRawRmssdPoints(windowMinutes);
     final b = _baseline;
-    if (b == null || b == 0 || hrvBaselinePoints.isEmpty) return [];
+    if (b == null || b == 0 || hrvPointsForWindow.isEmpty) return [];
     
     final int rhr = restingHrValue;
+    List<HeartRate> stressPointsTimeline = [];
 
-    return hrvBaselinePoints.map((p) {
+    for (var p in hrvPointsForWindow) {
       final slotRecords = _heartRates.where((e) =>
         (e.time.isAfter(p.time) || e.time.isAtSameMomentAs(p.time)) && 
         e.time.isBefore(p.time.add(Duration(minutes: windowMinutes)))
       ).toList();
 
-      double currentBpm = slotRecords.isNotEmpty 
-          ? (slotRecords.map((e) => e.value).reduce((a, b) => a + b) / slotRecords.length)
-          : (rhr + 8).toDouble();
+      if (slotRecords.isEmpty) continue;
 
-      // Formula di normalizzazione logaritmica Firstbeat: analizza il rapporto di scostamento geometrico
-      double ratio = p.value / b;
-      double hrvStressComponent;
+      double avgBpm = slotRecords.map((e) => e.value).reduce((a, b) => a + b) / slotRecords.length;
 
-      if (ratio < 1.0) {
-        // HRV sotto la baseline: lo stress cresce linearmente verso l'alto (25 - 99)
-        hrvStressComponent = 25.0 + (1.0 - ratio) * 65.0;
-      } else {
-        // HRV sopra la baseline: lo stress scende gradualmente nella fascia di calma diurna (5 - 25)
-        hrvStressComponent = math.max(5.0, 25.0 - (ratio - 1.0) * 20.0);
+      if (avgBpm > (rhr + 40)) {
+        continue;
       }
 
-      // Elevazione metabolica simpatica calibrata sulla riserva cardiaca attiva diurna (0 - 45 BPM)
-      double bpmElevation = math.max(0.0, currentBpm - rhr);
-      double sympatheticBpmBoost = (bpmElevation / 45.0).clamp(0.0, 1.0) * 25.0;
+      double ratio = p.value / b;
+      double stressScore;
 
-      // Unione bilanciata per rispecchiare l'oscillazione reale dei sensori ottici commerciali
-      double finalStressScore = hrvStressComponent + sympatheticBpmBoost;
+      if (ratio < 1.0) {
+        double deficit = 1.0 - ratio;
+        stressScore = 30.0 + (deficit * 45.0); 
+      } else {
+        double surplus = ratio - 1.0;
+        stressScore = math.max(5.0, 30.0 - (surplus * 25.0));
+      }
 
-      return HeartRate(
-        time: p.time, 
-        value: finalStressScore.clamp(5.0, 98.0).round(),
-      );
-    }).toList();
+      double bpmElevation = math.max(0.0, avgBpm - rhr);
+      if (bpmElevation > 5) {
+        stressScore += math.sqrt(bpmElevation - 5) * 3.5;
+      }
+
+      stressPointsTimeline.add(HeartRate(
+        time: p.time,
+        value: stressScore.clamp(5.0, 98.0).round(),
+      ));
+    }
+
+    return stressPointsTimeline;
+  }
+
+  // MASSIMA OTTIMIZZAZIONE GRAFICA: Genera solo 96 gruppi stabili invece di 288, eliminando i lag nativi
+  void _generateAndCacheBarGroups() {
+    if (_cachedStressPoints.isEmpty) {
+      _cachedBarGroups = [];
+      return;
+    }
+
+    final sorted = [..._cachedStressPoints]..sort((a, b) => a.time.compareTo(b.time));
+    final firstTimestamp = DateTime(sorted.first.time.year, sorted.first.time.month, sorted.first.time.day, 0, 0);
+    
+    final Map<String, int> stressLookupTable = {};
+    for (var p in sorted) {
+      final String key = '${p.time.hour}_${p.time.minute ~/ 15}';
+      stressLookupTable[key] = p.value;
+    }
+
+    final List<BarChartGroupData> builtGroups = [];
+    const int stepMinutes = 15;
+    const int totalSlots = 1440 ~/ stepMinutes; // 96 barre totali
+
+    Color colorFor(int stress) {
+      if (stress < 25) return Colors.blue;    
+      if (stress < 50) return Colors.teal;    
+      if (stress < 75) return Colors.orange;  
+      return Colors.red;                      
+    }
+
+    for (int slot = 0; slot < totalSlots; slot++) {
+      final int currentMinutes = slot * stepMinutes;
+      final DateTime slotTime = firstTimestamp.add(Duration(minutes: currentMinutes));
+      final String key = '${slotTime.hour}_${slotTime.minute ~/ 15}';
+
+      final int? stressValue = stressLookupTable[key];
+
+      if (stressValue != null) {
+        builtGroups.add(
+          BarChartGroupData(
+            x: slot,
+            barRods: [
+              BarChartRodData(
+                toY: stressValue.toDouble(),
+                color: colorFor(stressValue),
+                width: 2.8, // Barre leggermente più larghe per riempire lo schermo armonicamente
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(1.5)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        builtGroups.add(
+          BarChartGroupData(
+            x: slot,
+            barRods: [
+              BarChartRodData(
+                toY: 0,
+                color: Colors.transparent,
+                width: 2.8,
+              ),
+            ],
+          ),
+        );
+      }
+    }
+    _cachedBarGroups = builtGroups;
   }
 
   double get calculateHRV {
@@ -274,26 +354,35 @@ class DataProvider with ChangeNotifier {
       return;
     }
 
+    final List<Future<void>> downloadTasks = [];
     final List<double> dailyAverages = [];
+    
     DateTime d = DateTime.parse(_baselineStart);
     final end = DateTime.parse(_baselineEnd);
 
     while (!d.isAfter(end)) {
-      try {
-        final data = await _impactService.fetchHeartRateByDay(
-          token: token,
-          username: _lucaUsername,
-          day: _fmt(d),
-        );
-        final hr = (data ?? []).where((e) => e.value > 0).toList()
-          ..sort((a, b) => a.time.compareTo(b.time));
-        if (hr.isNotEmpty) {
-          final avg = _avgHrvOf(hr);
-          if (avg > 0) dailyAverages.add(avg);
-        }
-      } catch (_) {}
+      final DateTime currentTargetDate = d;
+      downloadTasks.add(() async {
+        try {
+          final data = await _impactService.fetchHeartRateByDay(
+            token: token,
+            username: _lucaUsername,
+            day: _fmt(currentTargetDate),
+          );
+          final hr = (data ?? []).where((e) => e.value > 0).toList();
+          if (hr.isNotEmpty) {
+            hr.sort((a, b) => a.time.compareTo(b.time));
+            final avg = _avgHrvOf(hr);
+            if (avg > 0) {
+              synchronized(dailyAverages, () => dailyAverages.add(avg));
+            }
+          }
+        } catch (_) {}
+      }());
       d = d.add(const Duration(days: 1));
     }
+
+    await Future.wait(downloadTasks);
 
     if (dailyAverages.isNotEmpty) {
       _baseline = dailyAverages.reduce((a, b) => a + b) / dailyAverages.length;
@@ -303,6 +392,10 @@ class DataProvider with ChangeNotifier {
     }
     _isBaselineLoading = false;
     notifyListeners();
+  }
+
+  void synchronized(dynamic lock, void Function() block) {
+    block(); 
   }
 
   String stressForSelectedDay() {

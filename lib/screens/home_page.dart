@@ -20,10 +20,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _selectedDay = "2026-06-24";
+  late String _selectedDay; 
   int _selectedIndex = 0;
 
   final List<String> _daysRange = [
+    "2026-06-05",
+    "2026-06-07",
+    "2026-06-08",
+    "2026-06-09",
+    "2026-06-10", 
+    "2026-06-11",
+    "2026-06-12",
+    "2026-06-13",
+    "2026-06-14",
+    "2026-06-15",
+    "2026-06-16",
+    "2026-06-17",
+    "2026-06-18",
+    "2026-06-19",
+    "2026-06-20",
+    "2026-06-21",
+    "2026-06-22",
+    "2026-06-23",
     "2026-06-24",
     "2026-06-25",
     "2026-06-26",
@@ -45,14 +63,20 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    
+    final DateTime yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final String computedYesterdayStr = 
+        '${yesterday.year.toString().padLeft(4, '0')}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    
+    _selectedDay = _daysRange.contains(computedYesterdayStr) ? computedYesterdayStr : _daysRange.first;
+
+    Future.microtask(() async {
+      if (!mounted) return;
       final dp = Provider.of<DataProvider>(context, listen: false);
       await dp.fetchLucaHeartDataForDay(_selectedDay);
-      await dp.computeBaselineIfNeeded();
     });
   }
 
-  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELL'HRV
   void _showHrvInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -84,7 +108,16 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Heart Rate Variability (HRV) measures the micro-second time variations between consecutive heartbeats (NN intervals).',
+                  'Heart Rate Variability (HRV) measures the milli-second time variations between consecutive heartbeats.',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Full 24-Hour Timeline:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
+                ),
+                Text(
+                  'The application maps all available records throughout day and night. Whenever the wearable device is active and tracking, the data points are captured and displayed chronologically to form a coherent autonomic overview.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
@@ -93,16 +126,7 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'Calculated using the medical rMSSD standard formula (root mean square of successive differences). It isolates parasympathetic vagal activity, serving as a direct metric of autonomic nervous system restoration.',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Hourly Aggregation:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
-                ),
-                Text(
-                  'To avoid artifact noise from erratic single movements, data is collected in 5-minute epochs and aggregated hour-by-hour into a continuous, consolidated baseline trend.',
+                  'Calculated via the root mean square of successive differences (rMSSD) standard over 5-minute epochs and smoothed hour-by-hour.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
@@ -113,7 +137,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELLO STRESS STILE GARMIN (FIRSTBEAT)
   void _showStressInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -128,7 +151,7 @@ class _HomePageState extends State<HomePage> {
                   Icon(Icons.waves, color: Color(0xFF89453C)),
                   SizedBox(width: 8),
                   Text(
-                    'What is Stress?',
+                    'Stress Profile',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                   ),
                 ],
@@ -145,16 +168,16 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Our engine utilizes Firstbeat Analytics standards to assess the real-time balance between the sympathetic (fight-or-flight) and parasympathetic (rest-and-digest) systems.',
+                  'Computes a continuous score from 5 to 100 to map autonomic nervous system strain and sympathetic fluctuations.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'How it works:',
+                  'Attenuated HR Modulation:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'Instead of using a rigid linear ratio, the mathematical model scales your instant rMSSD variations directly within your historical physiological footprint. Punteggi lower (0-25) represent true vagal relaxation, while higher scores map autonomic stress and emotional or systemic fatigue.',
+                  'The baseline score is governed by the percentage deficit of your instant HRV against your historical template. Direct heart rate elevations above your Resting HR are processed non-linearly using mathematical square-root damping, preventing standard daily physical movements from over-inflating or saturating your stress profile.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 SizedBox(height: 12),
@@ -163,7 +186,7 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                 ),
                 Text(
-                  'The ecosystem distributes metrics into highly responsive 15-minute segments. When the sensor detects a removal of the device, it leaves the timeline blank rather than forcing artificial bars, preserving absolute telemetry integrity.',
+                  'Processed in responsive 15-minute intervals. Missing data windows are kept blank to accurately represent sensor detachment without distorting your real profile timeline.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
@@ -180,6 +203,8 @@ class _HomePageState extends State<HomePage> {
     final storico = Provider.of<StoricoProvider>(context);
     final dataProvider = Provider.of<DataProvider>(context); 
 
+    final String calculatedHrvStr = dataProvider.calculateHRV.toStringAsFixed(1);
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 196, 0),
       appBar: AppBar(
@@ -192,13 +217,9 @@ class _HomePageState extends State<HomePage> {
                   : _selectedIndex == 2
                       ? 'Settings'
                       : 'Profile',
-          style: const TextStyle(
-            color: Color.fromARGB(255, 255, 196, 0),
-          ),
+          style: const TextStyle(color: Color.fromARGB(255, 255, 196, 0)),
         ),
-        iconTheme: const IconThemeData(
-          color: Color.fromARGB(255, 255, 196, 0),
-        ),
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
         backgroundColor: Colors.black,
         elevation: 0,
         actions: const [SmallAppLogo()],
@@ -211,7 +232,6 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: Colors.white,
             onRefresh: () async {
               await dataProvider.fetchLucaHeartDataForDay(_selectedDay);
-              await dataProvider.computeBaselineIfNeeded();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -265,7 +285,7 @@ class _HomePageState extends State<HomePage> {
                       )
                     else ...[
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center, 
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -277,7 +297,7 @@ class _HomePageState extends State<HomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  "Average HRV: ${dataProvider.calculateHRV.toStringAsFixed(1)} ms",
+                                  "Average HRV: $calculatedHrvStr ms",
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                                 ),
                                 const SizedBox(width: 5),
@@ -323,7 +343,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 20),
                       Text(
                         'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} days · '
-                        'today ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
+                        'today $calculatedHrvStr ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
                         style: const TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                       const SizedBox(height: 12),
@@ -364,7 +384,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                         child: StressPlot(
                           points: dataProvider.stressPoints,
-                          emptyMessage: 'Analyzing contextual metrics...',
+                          precomputedGroups: dataProvider.cachedBarGroups,
+                          emptyMessage: 'Initializing high-resolution telemetry...',
                           isLoading: dataProvider.isBaselineLoading,
                         ),
                       ),

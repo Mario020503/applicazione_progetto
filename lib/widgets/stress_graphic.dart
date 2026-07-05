@@ -9,18 +9,13 @@ class StressPlot extends StatelessWidget {
     required this.points,
     required this.emptyMessage,
     this.isLoading = false,
+    required this.precomputedGroups, 
   });
 
   final List<HeartRate> points; 
   final String emptyMessage;
   final bool isLoading;
-
-  static Color colorFor(int stress) {
-    if (stress < 25) return Colors.blue;    // Calm
-    if (stress < 50) return Colors.teal;    // Low
-    if (stress < 75) return Colors.orange;  // Medium
-    return Colors.red;                      // High
-  }
+  final List<BarChartGroupData> precomputedGroups; 
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +35,7 @@ class StressPlot extends StatelessWidget {
       );
     }
 
-    if (points.isEmpty) {
+    if (points.isEmpty || precomputedGroups.isEmpty) {
       return Center(
         child: Text(
           emptyMessage,
@@ -52,56 +47,6 @@ class StressPlot extends StatelessWidget {
     final sorted = [...points]..sort((a, b) => a.time.compareTo(b.time));
     final firstTimestamp = DateTime(sorted.first.time.year, sorted.first.time.month, sorted.first.time.day, 0, 0);
 
-    final groups = <BarChartGroupData>[];
-    const int stepMinutes = 15;
-    const int totalSlots = 1440 ~/ stepMinutes; // 96 slot totali in una giornata
-
-    // COSTRUZIONE DELLA MATRICE FISSA DELLE 24 ORE:
-    // Generiamo ogni singolo slot da 15 minuti per forzare i veri spazi vuoti nel grafico
-    for (int slot = 0; slot < totalSlots; slot++) {
-      final int currentMinutes = slot * stepMinutes;
-      final DateTime slotTime = firstTimestamp.add(Duration(minutes: currentMinutes));
-
-      // Cerchiamo se esiste un dato reale registrato in questa specifica finestra temporale
-      final matchingPoint = sorted.any((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
-          ? sorted.firstWhere((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
-          : null;
-
-      if (matchingPoint != null) {
-        // C'è un dato reale: inseriamo la barra colorata
-        groups.add(
-          BarChartGroupData(
-            x: slot,
-            barRods: [
-              BarChartRodData(
-                toY: matchingPoint.value.toDouble(),
-                color: colorFor(matchingPoint.value),
-                width: 2.2,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // NON CI SONO DATI: Inseriamo una barra trasparente per bloccare lo spazio e mostrare il vuoto
-        groups.add(
-          BarChartGroupData(
-            x: slot,
-            barRods: [
-              BarChartRodData(
-                toY: 0,
-                color: Colors.transparent,
-                width: 2.2,
-              ),
-            ],
-          ),
-        );
-      }
-    }
-
-    // Mostriamo un'etichetta oraria ogni 6 ore (00:00, 06:00, 12:00, 18:00, 00:00) per un asse X perfetto
-    const double xInterval = 24; // Ogni 24 slot da 15 minuti corrispondono esattamente a 6 ore
-
     return Column(
       children: [
         Container(
@@ -111,16 +56,8 @@ class StressPlot extends StatelessWidget {
             BarChartData(
               minY: 0,
               maxY: 100,
-              barGroups: groups,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: 25,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: plotYellow.withValues(alpha: 0.18),
-                  strokeWidth: 1,
-                ),
-              ),
+              barGroups: precomputedGroups, 
+              gridData: const FlGridData(show: false), 
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -144,13 +81,13 @@ class StressPlot extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: xInterval,
+                    interval: 24, // 24 slot da 15 minuti equivalgono a un'etichetta ogni 6 ore reali (96 / 4 = 24)
                     getTitlesWidget: (v, meta) {
                       final slotIndex = v.toInt();
-                      if (slotIndex < 0 || slotIndex > totalSlots || slotIndex % 24 != 0) {
+                      if (slotIndex < 0 || slotIndex >= 96 || slotIndex % 24 != 0) {
                         return const SizedBox.shrink();
                       }
-                      final labelTime = firstTimestamp.add(Duration(minutes: slotIndex * stepMinutes));
+                      final labelTime = firstTimestamp.add(Duration(minutes: slotIndex * 15));
                       return SideTitleWidget(
                         meta: meta,
                         space: 4,
@@ -165,12 +102,11 @@ class StressPlot extends StatelessWidget {
               ),
               barTouchData: BarTouchData(
                 enabled: true,
+                handleBuiltInTouches: true,
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    // Nascondiamo il tooltip se tocchiamo uno spazio vuoto (trasparente)
                     if (rod.toY == 0) return null;
-
-                    final t = firstTimestamp.add(Duration(minutes: group.x * stepMinutes));
+                    final t = firstTimestamp.add(Duration(minutes: group.x * 15));
                     return BarTooltipItem(
                       '${DateFormat('HH:mm').format(t)}\nStress: ${rod.toY.toInt()}',
                       const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
@@ -179,6 +115,7 @@ class StressPlot extends StatelessWidget {
                 ),
               ),
             ),
+            duration: Duration.zero, 
           ),
         ),
         const SizedBox(height: 6),
