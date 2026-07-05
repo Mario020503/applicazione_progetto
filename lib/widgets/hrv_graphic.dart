@@ -60,8 +60,8 @@ class HrPlot extends StatelessWidget {
     final xInterval = xMax <= 0 ? 60.0 : xMax / 4; 
 
     double minY = 0;
-    double maxY = 120;
-    double yInterval = 25; 
+    double maxY = 150; // allineato al limite superiore dei punti HRV (clamp 10..150)
+    double yInterval = 25;
 
     final segments = _splitIntoSegments(sortedPoints, 75);
 
@@ -145,7 +145,7 @@ class HrPlot extends StatelessWidget {
                   meta: meta,
                   space: 4,
                   child: Text(
-                    DateFormat('HH:00').format(date),
+                    DateFormat('HH:mm').format(date),
                     style: const TextStyle(fontSize: 10, color: plotYellow),
                   ),
                 );
@@ -169,7 +169,7 @@ class HrPlot extends StatelessWidget {
               return touchedSpots.map((spot) {
                 final ts = firstTimestamp.add(Duration(minutes: spot.x.round()));
                 return LineTooltipItem(
-                  'Fascia oraria: ${DateFormat('HH:00').format(ts)}\nHRV Medio: ${spot.y.toStringAsFixed(valueDecimals)} ms',
+                  'Time: ${DateFormat('HH:mm').format(ts)}\nAvg HRV: ${spot.y.toStringAsFixed(valueDecimals)} ms',
                   const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
                 );
               }).toList();
