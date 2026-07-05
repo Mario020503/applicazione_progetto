@@ -36,20 +36,9 @@ class StoricoProvider extends ChangeNotifier {
     return '${data.year}-$m-$g';
   }
 
-  // Carica il diario da SharedPreferences (da chiamare all'avvio dell'app)
-  Future<void> caricaStorico() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_prefsKey);
-    if (raw == null || raw.isEmpty) {
-      _storico = {};
-    } else {
-      // jsonDecode restituisce Map<String, dynamic>:
-      // riconvertiamo ogni valore in double
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      _storico = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
-    }
-    notifyListeners();
-  }
+  // caricaStorico() e' stato rimosso: era codice morto e per giunta leggeva
+  // dalla chiave globale invece che da quella per account. Il caricamento del
+  // diario passa sempre da loadForAccount(), che usa _key().
 
   // Salva il picco BAC di una serata.
   // Idempotente: tiene sempre il valore più alto per quella data, quindi
@@ -102,12 +91,19 @@ class StoricoProvider extends ChangeNotifier {
   // Oggi è escluso di proposito: la serata di oggi potrebbe non essere
   // ancora cominciata
   int get giorniPuliti {
+    // Diario vuoto: nessuna storia, quindi nessuna serie da festeggiare.
+    if (_storico.isEmpty) return 0;
+
+    // La data piu' vecchia registrata segna il confine oltre il quale non
+    // abbiamo dati: prima di allora non ha senso contare giorni "puliti".
+    final chiaviOrdinate = _storico.keys.toList()..sort();
+    final primaData = DateTime.parse(chiaviOrdinate.first);
+
     int conta = 0;
     var giorno = DateTime.now().subtract(const Duration(days: 1));
-    while (!_storico.containsKey(_chiave(giorno))) {
+    while (!_storico.containsKey(_chiave(giorno)) && !giorno.isBefore(primaData)) {
       conta++;
       giorno = giorno.subtract(const Duration(days: 1));
-      if (conta > 365) break;             // tetto di sicurezza, evita loop infiniti
     }
     return conta;
   }
