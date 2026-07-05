@@ -75,19 +75,24 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text(
-          'READ CAREFULLY',
+          'Confirm emergency contact',
           style: TextStyle(
-            color: Colors.redAccent,
+            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: const Text('Confirm that you have entered a valid emergency contact. This contact will be deleted after the session.\n\nPlease, if you are UNDER 18, do NOT drink alcohol, because the effects of alcohol on your body are more dangerous at your age: it causes permanent damage to your brain and liver, and can lead to addiction.'),
+        content: const Text('Please confirm that the emergency contact you entered is correct. We will only use it to reach that person if you ask for help tonight, and it will be deleted automatically when you end the night.'),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('I confirm'),
           ),
         ],
+
       ),
     );
 
