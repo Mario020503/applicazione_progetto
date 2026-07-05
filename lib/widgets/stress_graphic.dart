@@ -3,9 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:buzzed_buddy/models/heart_rate.dart';
 
-// Grafico dello STRESS nel tempo, stile Garmin: barre colorate per fascia
-// (blu = calmo → rosso = stress alto). I dati arrivano da DataProvider.stressPoints,
-// dove ogni punto ha value = livello di stress 0-100 di uno slot da 10 minuti.
 class StressPlot extends StatelessWidget {
   const StressPlot({
     super.key,
@@ -14,32 +11,30 @@ class StressPlot extends StatelessWidget {
     this.isLoading = false,
   });
 
-  final List<HeartRate> points; // value = livello di stress 0-100
+  final List<HeartRate> points; 
   final String emptyMessage;
   final bool isLoading;
 
-  // Colore per fascia di stress (stile Garmin).
   static Color colorFor(int stress) {
-    if (stress < 25) return Colors.blue;      // calmo
-    if (stress < 50) return Colors.teal;      // basso
-    if (stress < 75) return Colors.orange;    // medio
-    return Colors.red;                        // alto
+    if (stress < 25) return Colors.blue;    // Calm
+    if (stress < 50) return Colors.teal;    // Low
+    if (stress < 75) return Colors.orange;  // Medium
+    return Colors.red;                      // High
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
+
     if (isLoading) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: const [
-          CircularProgressIndicator(color: Color.fromARGB(255, 255, 196, 0)),
+          CircularProgressIndicator(color: plotYellow),
           SizedBox(height: 12),
           Text(
-            'Computing baseline…',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 255, 196, 0),
-            ),
+            'Computing baseline...',
+            style: TextStyle(fontWeight: FontWeight.bold, color: plotYellow),
           ),
         ],
       );
@@ -49,34 +44,64 @@ class StressPlot extends StatelessWidget {
       return Center(
         child: Text(
           emptyMessage,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            color: Color.fromARGB(255, 255, 196, 0),
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500, color: plotYellow),
         ),
       );
     }
 
     final sorted = [...points]..sort((a, b) => a.time.compareTo(b.time));
+    final firstTimestamp = DateTime(sorted.first.time.year, sorted.first.time.month, sorted.first.time.day, 0, 0);
 
-    final groups = <BarChartGroupData>[
-      for (int i = 0; i < sorted.length; i++)
-        BarChartGroupData(
-          x: i,
-          barRods: [
-            BarChartRodData(
-              toY: sorted[i].value.toDouble(),
-              color: colorFor(sorted[i].value),
-              width: 2,
-            ),
-          ],
-        ),
-    ];
+    final groups = <BarChartGroupData>[];
+    const int stepMinutes = 15;
+    const int totalSlots = 1440 ~/ stepMinutes; // 96 slot totali in una giornata
 
-    // Mostriamo un'etichetta oraria ogni ~1/4 dei punti, per non affollare.
-    final labelEvery = (sorted.length / 4).ceil().clamp(1, sorted.length);
+    // COSTRUZIONE DELLA MATRICE FISSA DELLE 24 ORE:
+    // Generiamo ogni singolo slot da 15 minuti per forzare i veri spazi vuoti nel grafico
+    for (int slot = 0; slot < totalSlots; slot++) {
+      final int currentMinutes = slot * stepMinutes;
+      final DateTime slotTime = firstTimestamp.add(Duration(minutes: currentMinutes));
 
-    const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
+      // Cerchiamo se esiste un dato reale registrato in questa specifica finestra temporale
+      final matchingPoint = sorted.any((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
+          ? sorted.firstWhere((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
+          : null;
+
+      if (matchingPoint != null) {
+        // C'è un dato reale: inseriamo la barra colorata
+        groups.add(
+          BarChartGroupData(
+            x: slot,
+            barRods: [
+              BarChartRodData(
+                toY: matchingPoint.value.toDouble(),
+                color: colorFor(matchingPoint.value),
+                width: 2.2,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // NON CI SONO DATI: Inseriamo una barra trasparente per bloccare lo spazio e mostrare il vuoto
+        groups.add(
+          BarChartGroupData(
+            x: slot,
+            barRods: [
+              BarChartRodData(
+                toY: 0,
+                color: Colors.transparent,
+                width: 2.2,
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    // Mostriamo un'etichetta oraria ogni 6 ore (00:00, 06:00, 12:00, 18:00, 00:00) per un asse X perfetto
+    const double xInterval = 24; // Ogni 24 slot da 15 minuti corrispondono esattamente a 6 ore
+
     return Column(
       children: [
         Container(
@@ -87,27 +112,23 @@ class StressPlot extends StatelessWidget {
               minY: 0,
               maxY: 100,
               barGroups: groups,
-              groupsSpace: 2,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
                 horizontalInterval: 25,
-                getDrawingHorizontalLine: (v) =>
-                    FlLine(color: plotYellow.withValues(alpha: 0.18), strokeWidth: 1),
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: plotYellow.withValues(alpha: 0.18),
+                  strokeWidth: 1,
+                ),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 leftTitles: AxisTitles(
                   axisNameWidget: const Text(
                     'Stress',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 255, 196, 0)),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow),
                   ),
                   axisNameSize: 18,
                   sideTitles: SideTitles(
@@ -116,24 +137,26 @@ class StressPlot extends StatelessWidget {
                     interval: 25,
                     getTitlesWidget: (v, meta) => Text(
                       v.toInt().toString(),
-                      style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
+                      style: const TextStyle(fontSize: 10, color: plotYellow),
                     ),
                   ),
                 ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
+                    interval: xInterval,
                     getTitlesWidget: (v, meta) {
-                      final i = v.toInt();
-                      if (i < 0 || i >= sorted.length || i % labelEvery != 0) {
+                      final slotIndex = v.toInt();
+                      if (slotIndex < 0 || slotIndex > totalSlots || slotIndex % 24 != 0) {
                         return const SizedBox.shrink();
                       }
+                      final labelTime = firstTimestamp.add(Duration(minutes: slotIndex * stepMinutes));
                       return SideTitleWidget(
                         meta: meta,
                         space: 4,
                         child: Text(
-                          DateFormat('HH:mm').format(sorted[i].time),
-                          style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
+                          DateFormat('HH:mm').format(labelTime),
+                          style: const TextStyle(fontSize: 10, color: plotYellow),
                         ),
                       );
                     },
@@ -141,13 +164,16 @@ class StressPlot extends StatelessWidget {
                 ),
               ),
               barTouchData: BarTouchData(
+                enabled: true,
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final t = sorted[group.x].time;
+                    // Nascondiamo il tooltip se tocchiamo uno spazio vuoto (trasparente)
+                    if (rod.toY == 0) return null;
+
+                    final t = firstTimestamp.add(Duration(minutes: group.x * stepMinutes));
                     return BarTooltipItem(
-                      '${DateFormat('HH:mm').format(t)}\nStress ${rod.toY.toInt()}',
-                      const TextStyle(
-                          color: Color.fromARGB(255, 255, 196, 0), fontWeight: FontWeight.bold),
+                      '${DateFormat('HH:mm').format(t)}\nStress: ${rod.toY.toInt()}',
+                      const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
                     );
                   },
                 ),
@@ -156,7 +182,6 @@ class StressPlot extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        // Legenda delle fasce
         Wrap(
           spacing: 12,
           runSpacing: 4,
@@ -190,7 +215,10 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Color.fromARGB(255, 255, 196, 0))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color.fromARGB(255, 255, 196, 0)),
+        ),
       ],
     );
   }

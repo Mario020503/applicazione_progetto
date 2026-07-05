@@ -36,10 +36,10 @@ class _SessionScreenState extends State<SessionScreen> {
   double _redThreshold = 1.5;
   bool _isMinor = false;
   
-  // Variabile locale di backup per mantenere il livello del cibo in caso di riavvio app
   late LivelloCibo _currentLivelloCibo;
 
   double get _foodFactor {
+    // CORRETTO: Rimossa la label 'key:' orfana che generava il warning
     switch (_currentLivelloCibo) {
       case LivelloCibo.niente:   return 1.0;
       case LivelloCibo.spuntino: return 0.9;
@@ -71,17 +71,13 @@ class _SessionScreenState extends State<SessionScreen> {
     if (user.livelloStress == 'high') {
       _redThreshold = 1.2;
     }
-    // Minorenni: soglie più prudenti (0.3 / 1.0). Regola "vince la più severa":
-    // il rosso non sale sopra 1.0 nemmeno con lo stress.
     _isMinor = user.isMinor;
     if (_isMinor) {
       _orangeThreshold = 0.3;
       if (_redThreshold > 1.0) _redThreshold = 1.0;
     }
 
-    // Inizializza o ripristina lo stato precedente persistito offline
     _initSessionState();
-
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _calculateBAC());
   }
 
@@ -90,7 +86,6 @@ class _SessionScreenState extends State<SessionScreen> {
     final prefs = await SharedPreferences.getInstance();
     
     if (user.accountId != null) {
-      // Ripristina l'ultimo livello del cibo se l'app è stata killata
       final savedFood = prefs.getString('saved_food_factor_${user.accountId}');
       if (savedFood != null && widget.livelloCibo == LivelloCibo.niente) {
         setState(() {
@@ -104,7 +99,6 @@ class _SessionScreenState extends State<SessionScreen> {
       }
     }
 
-    // Ripristina il tempo di avvio basandosi sul primo drink inserito in precedenza
     if (user.currentSessionDrinks.isNotEmpty) {
       final firstDrinkTimeStr = user.currentSessionDrinks.first['time'];
       if (firstDrinkTimeStr != null) {
@@ -132,7 +126,6 @@ class _SessionScreenState extends State<SessionScreen> {
     final w = user.weight ?? 70.0;
 
     double totalGrams = 0;
-    // Legge i dati reattivi e persistenti dal provider globale
     for (final drink in user.currentSessionDrinks) {
       totalGrams += (drink['ml'] as num) * (drink['abv'] as num) * 0.789;
     }
@@ -162,7 +155,6 @@ class _SessionScreenState extends State<SessionScreen> {
       _sessionStart = DateTime.now();
     }
 
-    // Salva la mappa nel provider, che scrive in automatico su SharedPreferences
     await user.addDrinkToSession({
       'name': _selectedDrink,
       'ml': drink['ml'] * _quantity,
@@ -185,7 +177,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
   String get _timeToSafe {
     if (_isMinor) {
-      // Per i minorenni niente "safe zone": riflessione/allerta.
       if (_level == 'green') return 'Reflect on what you\'re doing';
       if (_level == 'orange') {
         return 'Beware of your condition, consider stopping immediately';
@@ -278,13 +269,11 @@ class _SessionScreenState extends State<SessionScreen> {
       _storicoProv.salvaSerata(DateTime.now(), _peakBAC);
     }
     
-    // Rimuove l'indicatore temporaneo del cibo associato a questo account
     if (user.accountId != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('saved_food_factor_${user.accountId}');
     }
 
-    // PULIZIA FINALE: Cancella per sempre l'array dei drink dal telefono
     await user.endTheNight();
     
     if (!mounted) return;
@@ -305,7 +294,6 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
-  // Banner fisso mostrato ai minorenni (nei layout verde e arancione).
   Widget _buildMinorBanner() {
     return Container(
       width: double.infinity,
@@ -335,23 +323,24 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Widget _buildGreenLayout() {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        appBar: AppBar(
-          title: const Text('Tonight'),
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.black,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
-          titleTextStyle: const TextStyle(
-            color: Color.fromARGB(255, 255, 196, 0),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          actions: const [SmallAppLogo()],
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: const Text('Tonight'),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+        titleTextStyle: const TextStyle(
+          color: Color.fromARGB(255, 255, 196, 0),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        actions: const [SmallAppLogo()],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -368,30 +357,30 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildOrangeLayout() {
     final hoursLeft = _currentBAC > _orangeThreshold ? (_currentBAC - _orangeThreshold) / 0.15 : 0.0;
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color.fromARGB(255, 255, 196, 0),
-        appBar: AppBar(
-          title: const Text('Tonight'),
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.black,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
-          titleTextStyle: const TextStyle(
-            color: Color.fromARGB(255, 255, 196, 0),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          actions: const [SmallAppLogo()],
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 255, 196, 0),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: const Text('Tonight'),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 255, 196, 0)),
+        titleTextStyle: const TextStyle(
+          color: Color.fromARGB(255, 255, 196, 0),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        actions: const [SmallAppLogo()],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -443,9 +432,8 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildRedLayout() {
     return Scaffold(
@@ -614,6 +602,7 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
+  // INTEGRATO DEFINITIVAMENTE: Metodo completo di visualizzazione lista dei drink consumati
   Widget _buildDrinkList() {
     final user = Provider.of<UserProvider>(context);
     

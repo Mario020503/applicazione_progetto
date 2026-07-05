@@ -24,6 +24,28 @@ class HrPlot extends StatelessWidget {
   final String emptyMessage;
   final int valueDecimals;
 
+  List<List<HrPoint>> _splitIntoSegments(List<HrPoint> sortedPoints, int maxGapMinutes) {
+    if (sortedPoints.isEmpty) return [];
+    
+    List<List<HrPoint>> segments = [];
+    List<HrPoint> currentSegment = [sortedPoints.first];
+
+    for (int i = 1; i < sortedPoints.length; i++) {
+      final difference = sortedPoints[i].time.difference(sortedPoints[i - 1].time).inMinutes;
+      
+      if (difference > maxGapMinutes) {
+        segments.add(currentSegment);
+        currentSegment = [];
+      }
+      currentSegment.add(sortedPoints[i]);
+    }
+    
+    if (currentSegment.isNotEmpty) {
+      segments.add(currentSegment);
+    }
+    return segments;
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
@@ -34,21 +56,42 @@ class HrPlot extends StatelessWidget {
     final sortedPoints = [...points]..sort((a, b) => a.time.compareTo(b.time));
     final firstTimestamp = sortedPoints.first.time;
 
-    final spots = sortedPoints
-        .map(
-          (e) => FlSpot(
-            e.time.difference(firstTimestamp).inMinutes.toDouble(),
-            e.value,
-          ),
-        )
-        .toList();
+    final double xMax = sortedPoints.last.time.difference(firstTimestamp).inMinutes.toDouble();
+    final xInterval = xMax <= 0 ? 60.0 : xMax / 4; 
 
-    double minY = 20;
+    double minY = 0;
     double maxY = 120;
     double yInterval = 25; 
 
-    final xMax = spots.last.x;
-    final xInterval = xMax <= 0 ? 60.0 : xMax / 4; 
+    final segments = _splitIntoSegments(sortedPoints, 75);
+
+    final List<LineChartBarData> lineBarsData = segments.map((segment) {
+      final spots = segment.map((e) {
+        return FlSpot(
+          e.time.difference(firstTimestamp).inMinutes.toDouble(),
+          e.value,
+        );
+      }).toList();
+
+      return LineChartBarData(
+        spots: spots,
+        isCurved: true, 
+        barWidth: 3.0, 
+        color: lineColor,
+        dotData: const FlDotData(show: true), 
+        belowBarData: BarAreaData(
+          show: true,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              lineColor.withValues(alpha: 0.25),
+              lineColor.withValues(alpha: 0.0),
+            ],
+          ),
+        ),
+      );
+    }).toList();
 
     return LineChart(
       LineChartData(
@@ -68,12 +111,10 @@ class HrPlot extends StatelessWidget {
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          
-          // ASSE SINISTRO TRADOTTO
           leftTitles: AxisTitles(
             axisNameWidget: const Text(
               "HRV (ms)", 
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 255, 196, 0))
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow)
             ),
             axisNameSize: 18,
             sideTitles: SideTitles(
@@ -83,18 +124,16 @@ class HrPlot extends StatelessWidget {
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toStringAsFixed(0),
-                  style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
+                  style: const TextStyle(fontSize: 10, color: plotYellow),
                   textAlign: TextAlign.center,
                 );
               },
             ),
           ),
-          
-          // ASSE IN BASSO TRADOTTO
           bottomTitles: AxisTitles(
             axisNameWidget: const Text(
-              "Time (Hours)", // Tradotto
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 255, 196, 0))
+              "Time (Hours)", 
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow)
             ),
             axisNameSize: 16,
             sideTitles: SideTitles(
@@ -106,8 +145,8 @@ class HrPlot extends StatelessWidget {
                   meta: meta,
                   space: 4,
                   child: Text(
-                    DateFormat('HH:mm').format(date),
-                    style: const TextStyle(fontSize: 10, color: Color.fromARGB(255, 255, 196, 0)),
+                    DateFormat('HH:00').format(date),
+                    style: const TextStyle(fontSize: 10, color: plotYellow),
                   ),
                 );
               },
@@ -126,37 +165,18 @@ class HrPlot extends StatelessWidget {
         lineTouchData: LineTouchData(
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
-              getTooltipItems: (touchedSpots) {
+            getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final ts = firstTimestamp.add(Duration(minutes: spot.x.round()));
                 return LineTooltipItem(
-                  '${DateFormat('HH:mm').format(ts)}\n${spot.y.toStringAsFixed(0)} ms',
-                    const TextStyle(color: Color.fromARGB(255, 255, 196, 0), fontWeight: FontWeight.bold),
+                  'Fascia oraria: ${DateFormat('HH:00').format(ts)}\nHRV Medio: ${spot.y.toStringAsFixed(valueDecimals)} ms',
+                  const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
                 );
               }).toList();
             },
           ),
         ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            barWidth: 2.5, 
-            color: lineColor,
-            dotData: const FlDotData(show: false), 
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  lineColor.withValues(alpha: 0.35),
-                  lineColor.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-          ),
-        ],
+        lineBarsData: lineBarsData,
       ),
     );
   }
@@ -189,7 +209,7 @@ class CustomPlotHR extends StatelessWidget {
     return HrPlot(
       points: points,
       lineColor: const Color.fromARGB(255, 255, 196, 0),
-      emptyMessage: 'No HRV data available for this day', // Tradotto
+      emptyMessage: 'No HRV data available for this day',
       valueDecimals: 0,
     );
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../models/heart_rate.dart';
+import '../models/resting_hr.dart';
 
 class ImpactService {
   final String baseUrl = "https://impact.dei.unipd.it/bwthw";
@@ -44,16 +45,12 @@ class ImpactService {
         List<dynamic> rawData = [];
 
         if (decodedBody is Map<String, dynamic>) {
-          // --- LOG TEMPORANEO DI ISPEZIONE CHIAVI ---
-          debugPrint("DEBUG IMPACT: Il server ha risposto con una Mappa. Le chiavi presenti sono: ${decodedBody.keys.toList()}");
-          
-          // Estrazione dinamica provando le chiavi standard del server IMPACT
+          debugPrint("DEBUG IMPACT HR: Mappa ricevuta. Chiavi: ${decodedBody.keys.toList()}");
           if (decodedBody['data'] != null) {
             rawData = decodedBody['data'] is List ? decodedBody['data'] : (decodedBody['data']['data'] ?? []);
           } else if (decodedBody['records'] != null) {
             rawData = decodedBody['records'];
           } else {
-            // Se le chiavi standard falliscono, proviamo a cercare la prima lista disponibile nella mappa
             for (var val in decodedBody.values) {
               if (val is List) {
                 rawData = val;
@@ -71,6 +68,51 @@ class ImpactService {
       }
     } catch (e) {
       debugPrint('Errore fetchHeartRateByDay (Blocco Catch): $e');
+    }
+    return null;
+  }
+
+  Future<List<RestingHeartRate>?> fetchRestingHeartRateByDay({
+    required String token,
+    required String username,
+    required String day,
+  }) async {
+    final url = Uri.parse('$baseUrl/data/v1/resting_heart_rate/patients/$username/day/$day/');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decodedBody = jsonDecode(response.body);
+
+        if (decodedBody is Map<String, dynamic>) {
+          debugPrint("DEBUG IMPACT RHR: Mappa ricevuta. Chiavi: ${decodedBody.keys.toList()}");
+          final dynamic dataContent = decodedBody['data'];
+
+          if (dataContent != null) {
+            if (dataContent is Map<String, dynamic>) {
+              return [RestingHeartRate.fromJson(day, dataContent)];
+            } else if (dataContent is List<dynamic>) {
+              return dataContent.map((json) => RestingHeartRate.fromJson(day, json as Map<String, dynamic>)).toList();
+            }
+          }
+          if (decodedBody['records'] is List) {
+            return (decodedBody['records'] as List).map((json) => RestingHeartRate.fromJson(day, json as Map<String, dynamic>)).toList();
+          }
+        } else if (decodedBody is List<dynamic>) {
+          return decodedBody.map((json) => RestingHeartRate.fromJson(day, json as Map<String, dynamic>)).toList();
+        }
+        return [];
+      } else {
+        debugPrint("Errore server in fetchRestingHeartRateByDay: StatusCode ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint('Errore fetchRestingHeartRateByDay (Blocco Catch): $e');
     }
     return null;
   }

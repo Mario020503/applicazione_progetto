@@ -1,20 +1,51 @@
-// /data/v1/resting_heart_rate/patients/{username}/daterange/start_date/{start_date}/end_date/{end_date}/
-// /data/v1/resting_heart_rate/patients/{username}/day/{day}/
-
 import 'package:intl/intl.dart';
 
-class RestingHR {
-  final DateTime time;
+class RestingHeartRate {
+  final DateTime date;
   final int value;
 
-  RestingHR({required this.time, required this.value});
+  RestingHeartRate({required this.date, required this.value});
 
-  RestingHR.fromJson(String date, Map<String, dynamic> json) :
-      time = DateFormat('yyyy-MM-dd HH:mm:ss').parse('$date ${json["time"]}'),
-      value = int.parse(json["value"]);
+  factory RestingHeartRate.fromJson(String dateString, Map<String, dynamic> json) {
+    DateTime parsedDate;
+    final String timeRaw = json["time"] ?? "00:00:00";
+
+    try {
+      if (timeRaw.contains('-') || timeRaw.contains('/')) {
+        parsedDate = DateTime.parse(timeRaw);
+      } else {
+        parsedDate = DateFormat('yyyy-MM-dd HH:mm:ss').parse('$dateString $timeRaw');
+      }
+    } catch (e) {
+      try {
+        parsedDate = DateTime.parse(dateString);
+      } catch (_) {
+        parsedDate = DateTime.now();
+      }
+    }
+
+    int rhrValue = 0;
+    final dynamic rawValue = json["value"];
+
+    if (rawValue != null) {
+      if (rawValue is num) {
+        rhrValue = rawValue.toDouble().round();
+      } else if (rawValue is String) {
+        final double? parsedDouble = double.tryParse(rawValue);
+        if (parsedDouble != null) {
+          rhrValue = parsedDouble.round();
+        }
+      }
+    }
+
+    return RestingHeartRate(
+      date: parsedDate,
+      value: rhrValue,
+    );
+  }
 
   @override
   String toString() {
-    return 'RestingHR(time: $time, value: $value)';
-  }//toString
-}//RestingHR
+    return 'RestingHeartRate(date: $date, value: $value)';
+  }
+}
