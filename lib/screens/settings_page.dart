@@ -5,8 +5,8 @@ import 'package:buzzed_buddy/screens/registerf_page.dart';
 import 'package:buzzed_buddy/screens/loginf_page.dart';
 import 'package:buzzed_buddy/screens/home_page.dart';
  
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
  
   @override
   Widget build(BuildContext context) {
