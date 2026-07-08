@@ -26,18 +26,18 @@ class StressPlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
+    const Color wingBlue = Color(0xFF86F5F0); // azzurro delle ali del logo
 
     if (isLoading || (showEmptyLoading && points.isEmpty)) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: plotYellow),
+          const CircularProgressIndicator(color: wingBlue),
           const SizedBox(height: 12),
           Text(
             isLoading ? 'Computing baseline...' : emptyMessage,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: plotYellow),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: wingBlue),
           ),
         ],
       );
@@ -47,7 +47,7 @@ class StressPlot extends StatelessWidget {
       return Center(
         child: Text(
           emptyMessage,
-          style: const TextStyle(fontWeight: FontWeight.w500, color: plotYellow),
+          style: const TextStyle(fontWeight: FontWeight.w500, color: wingBlue),
         ),
       );
     }
@@ -120,7 +120,7 @@ class StressPlot extends StatelessWidget {
                 drawVerticalLine: false,
                 horizontalInterval: 25,
                 getDrawingHorizontalLine: (value) => FlLine(
-                  color: plotYellow.withValues(alpha: 0.18),
+                  color: wingBlue.withValues(alpha: 0.18),
                   strokeWidth: 1,
                 ),
               ),
@@ -131,7 +131,7 @@ class StressPlot extends StatelessWidget {
                 leftTitles: AxisTitles(
                   axisNameWidget: const Text(
                     'Stress',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: wingBlue),
                   ),
                   axisNameSize: 18,
                   sideTitles: SideTitles(
@@ -140,7 +140,7 @@ class StressPlot extends StatelessWidget {
                     interval: 25,
                     getTitlesWidget: (v, meta) => Text(
                       v.toInt().toString(),
-                      style: const TextStyle(fontSize: 10, color: plotYellow),
+                      style: const TextStyle(fontSize: 10, color: wingBlue),
                     ),
                   ),
                 ),
@@ -159,7 +159,7 @@ class StressPlot extends StatelessWidget {
                         space: 4,
                         child: Text(
                           DateFormat('HH:mm').format(labelTime),
-                          style: const TextStyle(fontSize: 10, color: plotYellow),
+                          style: const TextStyle(fontSize: 10, color: wingBlue),
                         ),
                       );
                     },
@@ -176,7 +176,7 @@ class StressPlot extends StatelessWidget {
                     final t = firstTimestamp.add(Duration(minutes: group.x * stepMinutes));
                     return BarTooltipItem(
                       '${DateFormat('HH:mm').format(t)}\nStress: ${rod.toY.toInt()}',
-                      const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
+                      const TextStyle(color: wingBlue, fontWeight: FontWeight.bold),
                     );
                   },
                 ),
@@ -220,7 +220,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Color.fromARGB(255, 255, 196, 0)),
+          style: const TextStyle(fontSize: 11, color: Color(0xFF86F5F0)),
         ),
       ],
     );
