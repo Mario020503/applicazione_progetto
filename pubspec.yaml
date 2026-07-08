@@ -49,6 +49,7 @@ dependencies:
   # Connessione di rete e geolocalizzazione
   http: ^1.2.2
   geolocator: ^13.0.2
+  
 
 dev_dependencies:
   flutter_test:
