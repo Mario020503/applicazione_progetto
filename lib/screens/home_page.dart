@@ -20,6 +20,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Riga di debug in Home (baseline, HRV e stress del giorno): utile per
+  // scegliere i giorni da mostrare in demo. Tenere false per la presentazione,
+  // rimettere true quando serve individuare i giorni con stress alto.
+  static const bool _showDebug = false;
+
   String _selectedDay = "2026-06-24";
   int _selectedIndex = 0;
 
@@ -64,7 +69,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.info_outline, color: Color(0xFF89453C)),
+                  Icon(Icons.info_outline, color: Color(0xFF0E9C94)),
                   SizedBox(width: 8),
                   Text(
                     'What is HRV?',
@@ -125,7 +130,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.waves, color: Color(0xFF89453C)),
+                  Icon(Icons.waves, color: Color(0xFF0E9C94)),
                   SizedBox(width: 8),
                   Text(
                     'What is Stress?',
@@ -204,7 +209,10 @@ class _HomePageState extends State<HomePage> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          RefreshIndicator(
+          Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
             color: Colors.black,
             backgroundColor: Colors.white,
             onRefresh: () async {
@@ -271,7 +279,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.12),
+                              color: const Color(0xFF0E9C94),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -279,7 +287,7 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 Text(
                                   "Average HRV: ${dataProvider.calculateHRV.toStringAsFixed(1)} ms",
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
                                 const SizedBox(width: 5),
                                 GestureDetector(
@@ -287,7 +295,7 @@ class _HomePageState extends State<HomePage> {
                                   child: const Icon(
                                     Icons.info_outline,
                                     size: 16,
-                                    color: Colors.black87,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ],
@@ -296,12 +304,12 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.12),
+                              color: const Color(0xFF0E9C94),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               "Resting HR: ${dataProvider.restingHrValue} BPM",
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                           ),
                         ],
@@ -321,11 +329,12 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} days · '
-                        'today ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
+                      if (_showDebug)
+                        Text(
+                          'DEBUG · baseline ${dataProvider.baseline?.toStringAsFixed(1) ?? '—'} ms · ${dataProvider.baselineDaysUsed} days · '
+                          'today ${dataProvider.calculateHRV.toStringAsFixed(1)} ms → ${dataProvider.stressForSelectedDay().toUpperCase()}',
+                          style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        ),
                       const SizedBox(height: 12),
                       
                       GestureDetector(
@@ -333,7 +342,7 @@ class _HomePageState extends State<HomePage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.12),
+                            color: const Color(0xFF0E9C94),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -341,13 +350,13 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               const Text(
                                 'Stress Profile',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                               const SizedBox(width: 5),
                               const Icon(
                                 Icons.info_outline,
                                 size: 18,
-                                color: Colors.black87,
+                                color: Colors.white,
                               ),
                             ],
                           ),
@@ -370,58 +379,61 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 40),
-                    Container(
-                      height: 50,
-                      width: 250,
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: const Color.fromARGB(255, 255, 196, 0),
-                        ),
-                        onPressed: () async {
-                          final navigator = Navigator.of(context);
-                          final userProvider = Provider.of<UserProvider>(context, listen: false);
-                          
-                          if (userProvider.currentSessionDrinks.isNotEmpty) {
-                            navigator.push(
-                              MaterialPageRoute(
-                                builder: (_) => const SessionScreen(livelloCibo: LivelloCibo.niente),
-                              ),
-                            );
-                            return;
-                          }
-
-                          await dataProvider.computeBaselineIfNeeded();
-                          final stress = dataProvider.stressForSelectedDay();
-                          await userProvider.saveStressLevel(stress);
-                          final warnings = <String>[];
-                          if (storico.bevutoIeri) {
-                            warnings.add('You drank yesterday. Your body may still be recovering.');
-                          }
-                          if (stress == 'high') {
-                            warnings.add('You seem stressed today. Alcohol tends to hit harder when you are stressed.');
-                          }
-                          if (warnings.isNotEmpty) {
-                            final proceed = await _showPreStartWarning(warnings);
-                            if (proceed != true) return;
-                          }
-                          navigator.push(
-                            MaterialPageRoute(builder: (_) => const PreSessionScreen()),
-                          );
-                        },
-                        child: const Text(
-                          "Let's start",
-                          style: TextStyle(color: Color.fromARGB(255, 255, 196, 0), fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
+          ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                child: SizedBox(
+                  height: 56,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: const Color.fromARGB(255, 255, 196, 0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final userProvider = Provider.of<UserProvider>(context, listen: false);
+                      if (userProvider.currentSessionDrinks.isNotEmpty) {
+                        navigator.push(
+                          MaterialPageRoute(
+                            builder: (_) => const SessionScreen(livelloCibo: LivelloCibo.niente),
+                          ),
+                        );
+                        return;
+                      }
+                      await dataProvider.computeBaselineIfNeeded();
+                      final stress = dataProvider.stressForSelectedDay();
+                      await userProvider.saveStressLevel(stress);
+                      final warnings = <String>[];
+                      if (storico.bevutoIeri) {
+                        warnings.add('You drank yesterday. Your body may still be recovering.');
+                      }
+                      if (stress == 'high') {
+                        warnings.add('You seem stressed today. Alcohol tends to hit harder when you are stressed.');
+                      }
+                      if (warnings.isNotEmpty) {
+                        final proceed = await _showPreStartWarning(warnings);
+                        if (proceed != true) return;
+                      }
+                      navigator.push(
+                        MaterialPageRoute(builder: (_) => const PreSessionScreen()),
+                      );
+                    },
+                    child: const Text(
+                      "Let's start",
+                      style: TextStyle(color: Color.fromARGB(255, 255, 196, 0), fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const CalendarPage(),
           const SettingsPage(),
