@@ -48,7 +48,7 @@ class HrPlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color plotYellow = Color.fromARGB(255, 255, 196, 0);
+    const Color wingBlue = Color(0xFF86F5F0); // azzurro delle ali del logo
     if (points.isEmpty) {
       return Center(child: Text(emptyMessage, style: const TextStyle(fontWeight: FontWeight.w500)));
     }
@@ -105,8 +105,8 @@ class HrPlot extends StatelessWidget {
           drawVerticalLine: true,
           horizontalInterval: yInterval,
           verticalInterval: xInterval,
-          getDrawingHorizontalLine: (value) => FlLine(color: plotYellow.withValues(alpha: 0.18), strokeWidth: 1),
-          getDrawingVerticalLine: (value) => FlLine(color: plotYellow.withValues(alpha: 0.08), strokeWidth: 1),
+          getDrawingHorizontalLine: (value) => FlLine(color: wingBlue.withValues(alpha: 0.18), strokeWidth: 1),
+          getDrawingVerticalLine: (value) => FlLine(color: wingBlue.withValues(alpha: 0.08), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -114,7 +114,7 @@ class HrPlot extends StatelessWidget {
           leftTitles: AxisTitles(
             axisNameWidget: const Text(
               "HRV (ms)", 
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow)
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: wingBlue)
             ),
             axisNameSize: 18,
             sideTitles: SideTitles(
@@ -124,7 +124,7 @@ class HrPlot extends StatelessWidget {
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toStringAsFixed(0),
-                  style: const TextStyle(fontSize: 10, color: plotYellow),
+                  style: const TextStyle(fontSize: 10, color: wingBlue),
                   textAlign: TextAlign.center,
                 );
               },
@@ -133,7 +133,7 @@ class HrPlot extends StatelessWidget {
           bottomTitles: AxisTitles(
             axisNameWidget: const Text(
               "Time (Hours)", 
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: plotYellow)
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: wingBlue)
             ),
             axisNameSize: 16,
             sideTitles: SideTitles(
@@ -146,7 +146,7 @@ class HrPlot extends StatelessWidget {
                   space: 4,
                   child: Text(
                     DateFormat('HH:mm').format(date),
-                    style: const TextStyle(fontSize: 10, color: plotYellow),
+                    style: const TextStyle(fontSize: 10, color: wingBlue),
                   ),
                 );
               },
@@ -156,8 +156,8 @@ class HrPlot extends StatelessWidget {
         borderData: FlBorderData(
           show: true,
           border: Border(
-            left: BorderSide(color: plotYellow.withValues(alpha: 0.6)),
-            bottom: BorderSide(color: plotYellow.withValues(alpha: 0.6)),
+            left: BorderSide(color: wingBlue.withValues(alpha: 0.6)),
+            bottom: BorderSide(color: wingBlue.withValues(alpha: 0.6)),
             right: BorderSide.none,
             top: BorderSide.none,
           ),
@@ -170,7 +170,7 @@ class HrPlot extends StatelessWidget {
                 final ts = firstTimestamp.add(Duration(minutes: spot.x.round()));
                 return LineTooltipItem(
                   'Time: ${DateFormat('HH:mm').format(ts)}\nAvg HRV: ${spot.y.toStringAsFixed(valueDecimals)} ms',
-                  const TextStyle(color: plotYellow, fontWeight: FontWeight.bold),
+                  const TextStyle(color: wingBlue, fontWeight: FontWeight.bold),
                 );
               }).toList();
             },
@@ -208,7 +208,7 @@ class CustomPlotHR extends StatelessWidget {
 
     return HrPlot(
       points: points,
-      lineColor: const Color.fromARGB(255, 255, 196, 0),
+      lineColor: const Color(0xFF86F5F0),
       emptyMessage: 'No HRV data available for this day',
       valueDecimals: 0,
     );
