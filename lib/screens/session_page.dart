@@ -38,9 +38,6 @@ class _SessionScreenState extends State<SessionScreen> {
   
   late LivelloCibo _currentLivelloCibo;
 
-  // Fattore che riduce l'alcol assorbito in base al cibo. I coefficienti sono
-  // EURISTICI (stime ragionevoli, non da letteratura): il cibo rallenta
-  // l'assorbimento e abbassa il picco, ma questi numeri sono una nostra scelta.
   double get _foodFactor {
     switch (_currentLivelloCibo) {
       case LivelloCibo.niente:   return 1.0;
@@ -124,20 +121,9 @@ class _SessionScreenState extends State<SessionScreen> {
     final user = Provider.of<UserProvider>(context, listen: false);
     final now = DateTime.now();
 
-    // Fattore di Widmark per sesso (frazione d'acqua corporea) e peso.
     final r = (user.gender?.toUpperCase() == 'M') ? 0.68 : 0.55;
     final w = user.weight ?? 70.0;
 
-    // MODELLO. L'eliminazione dell'alcol e' di ordine zero: il corpo smaltisce
-    // circa 0.15 g/L per ora finche' il tasso e' sopra zero, e NON di piu' se
-    // hai piu' drink insieme. Quindi integriamo passo passo sugli orari reali
-    // dei drink: tra un drink e il successivo sottraiamo l'eliminazione e non
-    // scendiamo sotto zero, poi aggiungiamo il nuovo drink. Cosi' i drink presi
-    // tardi non vengono sottostimati (vecchio bug dell'unico orologio dal primo
-    // drink) e non si "smaltisce" alcol nei periodi in cui il tasso era gia' a
-    // zero. L'assorbimento resta considerato istantaneo (semplificazione).
-    // Il risultato e' trattato come g/L, di fatto il per mille (il sangue ha
-    // densita' circa 1, quindi g/kg e g/L coincidono in pratica).
     final drinks = List<dynamic>.from(user.currentSessionDrinks);
     drinks.sort((a, b) {
       final ta = DateTime.tryParse(a['time'] ?? '') ?? now;
@@ -157,7 +143,6 @@ class _SessionScreenState extends State<SessionScreen> {
       bac += grams / (w * r);
       lastTime = drinkTime;
     }
-    // Eliminazione dall'ultimo drink fino ad adesso.
     if (lastTime != null) {
       bac -= 0.15 * (now.difference(lastTime).inMinutes / 60);
     }
@@ -259,11 +244,6 @@ class _SessionScreenState extends State<SessionScreen> {
         '$locationLink\n\n'
         '- Sent automatically by BuzzedBuddy';
 
-    // INVIO SMS. Su Android proviamo l'invio automatico tramite un canale
-    // nativo (richiede il codice nativo lato piattaforma e il permesso SMS);
-    // su tutte le altre piattaforme apriamo l'app dei messaggi gia' compilata,
-    // da inviare a mano. La posizione e' opzionale: se manca il permesso il
-    // messaggio parte comunque con "Location unavailable".
     try {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         await _smsChannel.invokeMethod('sendSmsViaDefaultApp', {
@@ -465,9 +445,6 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Widget _buildRedLayout() {
-    // In rosso l'allarme non si scavalca: blocchiamo anche il tasto indietro di
-    // sistema. L'unica uscita e' un testo piccolo in fondo alla schermata, che
-    // noti solo se sei abbastanza lucido da cercarlo.
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -539,7 +516,6 @@ class _SessionScreenState extends State<SessionScreen> {
                   ),
                 ),
               ),
-              // Unica via d'uscita, in fondo e volutamente discreta.
               TextButton(
                 onPressed: _endNight,
                 child: const Text(
@@ -651,7 +627,6 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
-  // INTEGRATO DEFINITIVAMENTE: Metodo completo di visualizzazione lista dei drink consumati
   Widget _buildDrinkList() {
     final user = Provider.of<UserProvider>(context);
     

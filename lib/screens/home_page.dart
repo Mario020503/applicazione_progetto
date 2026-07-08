@@ -20,9 +20,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Riga di debug in Home (baseline, HRV e stress del giorno): utile per
-  // scegliere i giorni da mostrare in demo. Tenere false per la presentazione,
-  // rimettere true quando serve individuare i giorni con stress alto.
   static const bool _showDebug = false;
 
   String _selectedDay = "2026-06-24";
@@ -57,7 +54,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELL'HRV
   void _showHrvInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -118,7 +114,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // SPIEGAZIONE SCIENTIFICA AGGIORNATA DELLO STRESS STILE GARMIN (FIRSTBEAT)
   void _showStressInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -552,11 +547,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Elogio positivo: mostrato SOLO quando la serie pulita è reale e sensata.
-  // - storico non vuoto: c'è almeno una serata registrata, quindi i giorni
-  //   puliti sono veri (non "zero dati", che darebbe il valore-tetto 366);
-  // - < 365: esclude comunque il valore-tetto per sicurezza;
-  // - >= 3: elogiamo solo una serie che vale la pena.
   Widget _buildDailyNudge(StoricoProvider storico) {
     final giorni = storico.giorniPuliti;
     if (storico.storico.isEmpty || giorni < 3 || giorni >= 365) {

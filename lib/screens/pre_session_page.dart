@@ -5,9 +5,6 @@ import 'package:buzzed_buddy/providers/user_provider.dart';
 import 'package:buzzed_buddy/screens/session_page.dart';
 import 'package:buzzed_buddy/widgets/small_app_logo.dart';
 
-// ============================================================
-// PRE-SESSION SCREEN — Schermata prima dell'inizio della serata.
-// ============================================================
 
 class PreSessionScreen extends StatefulWidget {
   const PreSessionScreen({super.key});
@@ -21,17 +18,14 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
   final TextEditingController nomeController = TextEditingController();
   final TextEditingController telefonoController = TextEditingController();
 
-  // null = nessuna scelta ancora fatta → obbliga l'utente a decidere
   LivelloCibo? _livelloCibo;
 
   @override
   void initState() {
     super.initState();
-    // CONTROLLO DI SICUREZZA PER SINO-CORSO DELLA SERATA
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      
-      // Se ci sono già dei drink registrati sul telefono, salta tutto!
+
       if (userProvider.currentSessionDrinks.isNotEmpty) {
         Navigator.pushReplacement(
           context,
@@ -50,7 +44,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
     super.dispose();
   }
 
-  // Valida i dati, salva il contatto e avvia la sessione
   Future<void> _startSession() async {
     final nome = nomeController.text.trim();
     final localPhone = telefonoController.text.trim();
@@ -102,7 +95,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
 
     if (!mounted) return;
 
-    // Salva il contatto di emergenza nel Provider / SharedPreferences
     final user = Provider.of<UserProvider>(context, listen: false);
     await user.saveEmergencyContact(nome: nome, telefono: telefono);
 
@@ -144,7 +136,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // --- Sezione contatto di emergenza ---
             const Text(
               'Emergency contact',
               style: TextStyle(
@@ -167,7 +158,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
 
             const SizedBox(height: 28),
 
-            // --- Sezione cibo ---
             const Text(
               'Have you eaten?',
               style: TextStyle(
@@ -195,7 +185,6 @@ class _PreSessionScreenState extends State<PreSessionScreen> {
 
             const SizedBox(height: 36),
 
-            // --- Pulsante di avvio ---
             Center(
               child: ElevatedButton(
                 onPressed: _startSession,

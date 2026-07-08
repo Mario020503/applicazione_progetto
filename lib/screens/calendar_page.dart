@@ -88,7 +88,6 @@ class _CalendarPageState extends State<CalendarPage> {
                 ],
               ),
             ),
-            // Calendar grid
             _buildCalendarGrid(),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -174,14 +173,12 @@ class _CalendarPageState extends State<CalendarPage> {
       days.add(DateTime(_focusedDate.year, _focusedDate.month + 1, i));
     }
 
-    // Diario delle serate: serve a colorare le celle in base al picco BAC.
     final storico = Provider.of<StoricoProvider>(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
-          // Weekday headers
           GridView.count(
             crossAxisCount: 7,
             shrinkWrap: true,
@@ -208,7 +205,6 @@ class _CalendarPageState extends State<CalendarPage> {
                 )
                 .toList(),
           ),
-          // Calendar days
           GridView.count(
             crossAxisCount: 7,
             shrinkWrap: true,
@@ -220,12 +216,7 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  // Colore di riempimento della cella in base alla gravità della serata.
-  // Fasce fisse (g/L), per poter confrontare giorni diversi:
-  //   nessun dato → bianco (giorno pulito)
-  //   0–0.5   → verde   (sotto il limite legale, ma si è bevuto)
-  //   0.5–1.5 → arancio
-  //   ≥1.5    → rosso
+
   Color _fillColor(DateTime day, StoricoProvider storico) {
     if (day.month != _focusedDate.month) return Colors.grey[300]!;
     final bac = storico.bacDelGiorno(day);
@@ -238,9 +229,6 @@ class _CalendarPageState extends State<CalendarPage> {
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  // Costruisce una singola cella. Riempimento = gravità della serata,
-  // bordo = selezione/oggi: tenendoli separati, un giorno rosso resta
-  // rosso anche quando è selezionato.
   Widget _buildDayCell(DateTime day, StoricoProvider storico) {
     final fill = _fillColor(day, storico);
     final outOfMonth = day.month != _focusedDate.month;
@@ -260,7 +248,6 @@ class _CalendarPageState extends State<CalendarPage> {
       borderWidth = 1;
     }
 
-    // Testo bianco sulle celle colorate, nero sul bianco, grigio fuori mese.
     final coloredFill = !outOfMonth && fill != Colors.white;
     final textColor =
         outOfMonth ? Colors.grey : (coloredFill ? Colors.white : Colors.black);

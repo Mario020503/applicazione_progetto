@@ -61,8 +61,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
  
   Future<void> _requestLocationPermission() async {
-    // Avvolto in try/catch: se la richiesta del permesso fallisce non deve
-    // bloccare la registrazione
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -181,8 +179,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return;
                   }
 
-                  // Catturiamo Navigator e Messenger prima degli await:
-                  // usarli dopo, tramite il context, è fragile
                   final username = usernameController.text.trim();
                   if (username.isEmpty) {
                     ScaffoldMessenger.of(context)
@@ -191,8 +187,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return;
                   }
 
-                  // Peso: conversione sicura (accetta la virgola) e controllo di
-                  // plausibilita', cosi' non crasha e non arriva uno 0 al calcolo BAC.
                   final weight = double.tryParse(weightController.text.replaceAll(',', '.'));
                   if (weight == null || weight < 20 || weight > 400) {
                     ScaffoldMessenger.of(context)
@@ -205,7 +199,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   final messenger = ScaffoldMessenger.of(context);
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-                  // Non sovrascrivere un account gia' esistente con lo stesso username.
                   if (userProvider.usernameExists(username)) {
                     messenger
                       ..removeCurrentSnackBar()
@@ -224,9 +217,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   await _requestLocationPermission();
 
-                  // niente guardia su mounted navigator/messenger sono già catturati
-
-                  // Se l'utente è minorenne, avviso gentile e non giudicante
                   if (context.mounted && _isUnder18(_birthDate!)) {
                     await showDialog(
                       context: context,

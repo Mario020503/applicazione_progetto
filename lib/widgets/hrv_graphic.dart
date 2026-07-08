@@ -48,7 +48,7 @@ class HrPlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color wingBlue = Color(0xFF86F5F0); // azzurro delle ali del logo
+    const Color wingBlue = Color(0xFF86F5F0); 
     if (points.isEmpty) {
       return Center(child: Text(emptyMessage, style: const TextStyle(fontWeight: FontWeight.w500)));
     }
@@ -60,7 +60,7 @@ class HrPlot extends StatelessWidget {
     final xInterval = xMax <= 0 ? 60.0 : xMax / 4; 
 
     double minY = 0;
-    double maxY = 150; // allineato al limite superiore dei punti HRV (clamp 10..150)
+    double maxY = 150; 
     double yInterval = 25;
 
     final segments = _splitIntoSegments(sortedPoints, 75);

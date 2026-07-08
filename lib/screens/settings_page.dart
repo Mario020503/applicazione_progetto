@@ -25,8 +25,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadUserData();
   }
 
-  // Libera i controller quando la schermata viene distrutta, per non lasciarli
-  // appesi in memoria.
   @override
   void dispose() {
     nameController.dispose();
@@ -64,7 +62,6 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    // Peso: conversione sicura (accetta la virgola) e controllo di plausibilita'.
     final weight = double.tryParse(weightController.text.replaceAll(',', '.'));
     if (weight == null || weight < 20 || weight > 400) {
       _showSnackBar('Enter a valid weight in kg');
@@ -73,8 +70,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
     final user = Provider.of<UserProvider>(context, listen: false);
 
-    // Se stai cambiando la password, quella nuova deve essere diversa da quella
-    // attuale: altrimenti non e' un cambio, e dire "salvato" sarebbe fuorviante.
     if (passwordController.text.isNotEmpty &&
         user.matchesCurrentPassword(passwordController.text)) {
       _showSnackBar('The new password must be different from the current one');
@@ -82,12 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     await user.saveUser(
-      // Username e sesso non sono modificabili qui: passiamo i valori correnti.
-      // Lo username e' la chiave dell'account, il sesso e' un parametro
-      // fisiologico fisso del modello del tasso alcolemico.
       username: usernameController.text,
-      // Se il campo e' vuoto non tocchiamo la password (saveUser mantiene
-      // l'hash esistente); se compilato, verra' ri-hashata con un nuovo sale.
       password: passwordController.text.isNotEmpty
           ? passwordController.text
           : null,
@@ -119,9 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     const SizedBox(height: 10),
                     _buildTextField(nameController, 'Full name', 'Modify your name'),
-                    // Username in sola lettura: e' la chiave dell'account.
                     _buildTextField(usernameController, 'Username', 'Cannot be changed', readOnly: true),
-                    // Sesso in sola lettura: parametro fisiologico fisso, non una preferenza.
                     _buildTextField(genderController, 'Sex', 'Set at sign up', readOnly: true),
                     _buildTextField(weightController, 'Weight (kg)', 'Modify your weight', isNumber: true),
                     _buildTextField(passwordController, 'New password', 'Leave blank to keep current', obscure: true),
@@ -164,7 +152,6 @@ class _SettingsPageState extends State<SettingsPage> {
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           filled: true,
-          // Il campo di sola lettura ha un fondo grigio per segnalare che non si tocca.
           fillColor: readOnly ? Colors.grey.shade300 : Colors.white,
           border: OutlineInputBorder(
             borderSide: const BorderSide(color: Colors.black, width: 3),

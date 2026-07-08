@@ -43,7 +43,6 @@ class SplashScreen extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 if (user.username != null) {
-                  // LET'S GO → HomePage (con drawer per Calendar e Settings)
 
                   Navigator.pushReplacement(
                     context,
@@ -74,9 +73,6 @@ class SplashScreen extends StatelessWidget {
               ),
             ),
 
-            // Chi ha gia' un account ma non e' ricordato (per esempio dopo aver
-            // chiuso l'app sul login) deve poter raggiungere il login dalla
-            // splash, non solo la registrazione.
             if (user.username == null) ...[
               const SizedBox(height: 16),
               TextButton(

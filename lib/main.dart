@@ -8,11 +8,6 @@ import 'package:buzzed_buddy/providers/storico_provider.dart';
 import 'package:buzzed_buddy/providers/data_provider.dart';
 import 'package:buzzed_buddy/screens/splash_page.dart';
 
-// Prende un TextTheme (es. quello di un font di Google Fonts) e forza
-// grassetto + corsivo su ognuno dei 15 stili tipografici di Material.
-// Un Text che non specifica il proprio fontWeight/fontStyle erediterà
-// questi valori da qui: è il punto unico da cui cambiare il font di tutta
-// l'app, invece di andare a modificare ogni singolo widget Text.
 TextTheme _boldItalic(TextTheme base) {
   TextStyle? bi(TextStyle? style) =>
       style?.copyWith(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic);
@@ -92,18 +87,15 @@ class _AppEntryState extends State<AppEntry> {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
 
-      // 1. Carica lo stato dell'utente salvato localmente
       await userProvider.loadFromSharedPreferences();
 
-      // 2. Se c'è un utente loggato, carica il suo storico; altrimenti pulisci
       if (userProvider.accountId != null && userProvider.accountId!.isNotEmpty) {
         await storicoProvider.loadForAccount(userProvider.accountId);
       } else {
         await storicoProvider.clear();
       }
     } catch (_) {
-      // Se il caricamento dello stato salvato fallisce (per esempio per dati
-      // corrotti sul disco), non blocchiamo l'avvio: proseguiamo alla splash.
+      
     }
 
     if (!mounted) return;

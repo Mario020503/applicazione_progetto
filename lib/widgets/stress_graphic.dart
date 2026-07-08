@@ -18,15 +18,15 @@ class StressPlot extends StatelessWidget {
   final bool showEmptyLoading;
 
   static Color colorFor(int stress) {
-    if (stress < 25) return Colors.blue;    // Calm
-    if (stress < 50) return Colors.teal;    // Low
-    if (stress < 75) return Colors.orange;  // Medium
-    return Colors.red;                      // High
+    if (stress < 25) return Colors.blue;    
+    if (stress < 50) return Colors.teal;    
+    if (stress < 75) return Colors.orange;  
+    return Colors.red;                      
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color wingBlue = Color(0xFF86F5F0); // azzurro delle ali del logo
+    const Color wingBlue = Color(0xFF86F5F0); 
 
     if (isLoading || (showEmptyLoading && points.isEmpty)) {
       return Column(
@@ -57,21 +57,17 @@ class StressPlot extends StatelessWidget {
 
     final groups = <BarChartGroupData>[];
     const int stepMinutes = 15;
-    const int totalSlots = 1440 ~/ stepMinutes; // 96 slot totali in una giornata
+    const int totalSlots = 1440 ~/ stepMinutes; 
 
-    // COSTRUZIONE DELLA MATRICE FISSA DELLE 24 ORE:
-    // Generiamo ogni singolo slot da 15 minuti per forzare i veri spazi vuoti nel grafico
     for (int slot = 0; slot < totalSlots; slot++) {
       final int currentMinutes = slot * stepMinutes;
       final DateTime slotTime = firstTimestamp.add(Duration(minutes: currentMinutes));
 
-      // Cerchiamo se esiste un dato reale registrato in questa specifica finestra temporale
       final matchingPoint = sorted.any((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
           ? sorted.firstWhere((p) => p.time.hour == slotTime.hour && (p.time.minute ~/ stepMinutes) == (slotTime.minute ~/ stepMinutes))
           : null;
 
       if (matchingPoint != null) {
-        // C'è un dato reale: inseriamo la barra colorata
         groups.add(
           BarChartGroupData(
             x: slot,
@@ -86,7 +82,6 @@ class StressPlot extends StatelessWidget {
           ),
         );
       } else {
-        // NON CI SONO DATI: Inseriamo una barra trasparente per bloccare lo spazio e mostrare il vuoto
         groups.add(
           BarChartGroupData(
             x: slot,
@@ -102,8 +97,7 @@ class StressPlot extends StatelessWidget {
       }
     }
 
-    // Mostriamo un'etichetta oraria ogni 6 ore (00:00, 06:00, 12:00, 18:00, 00:00) per un asse X perfetto
-    const double xInterval = 24; // Ogni 24 slot da 15 minuti corrispondono esattamente a 6 ore
+    const double xInterval = 24; 
 
     return Column(
       children: [
@@ -170,7 +164,6 @@ class StressPlot extends StatelessWidget {
                 enabled: true,
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    // Nascondiamo il tooltip se tocchiamo uno spazio vuoto (trasparente)
                     if (rod.toY == 0) return null;
 
                     final t = firstTimestamp.add(Duration(minutes: group.x * stepMinutes));

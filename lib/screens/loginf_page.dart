@@ -118,21 +118,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       final username = usernameController.text.trim();
                       final password = passwordController.text;
 
-                      // MODIFICA DI SICUREZZA: Pulisce preventivamente lo storico in memoria RAM 
-                      // per evitare che tracce del vecchio utente rimangano visibili se il login fallisce.
                       await storicoProvider.clear();
 
                       final authenticated = await userProvider.authenticate(username, password);
 
                       if (authenticated) {
-                        // Carica il diario specifico usando l'accountId appena validato (ritorna la stringa privata)
                         await storicoProvider.loadForAccount(userProvider.accountId);
                         if (!navigator.mounted) return;
                         navigator.pushReplacement(
                           MaterialPageRoute(builder: (_) => const SplashScreen()),
                         );
                       } else {
-                        // Se l'autenticazione fallisce, ci assicuriamo che lo storico rimanga blindato e vuoto
                         await storicoProvider.clear();
                         
                         messenger

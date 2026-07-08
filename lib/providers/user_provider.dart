@@ -15,17 +15,15 @@ class UserProvider extends ChangeNotifier {
   String? name;
   String? gender;
   double? weight;
-  String? birthDate; // ISO 'yyyy-MM-dd...', usato per calcolare isMinor
+  String? birthDate; 
   bool isUserLogged = false;
  
   String? nomeContatto;
   String? telefonoContatto;
  
-  // 'normal' → rosso a 1.5
-  // 'high'   → rosso a 1.2 (l'arancione resta 0.5)
+ 
   String livelloStress = 'normal';
 
-  // Vero se l'utente è minorenne, calcolato dalla data di nascita.
   bool get isMinor {
     if (birthDate == null) return false;
     final b = DateTime.tryParse(birthDate!);
@@ -40,11 +38,10 @@ class UserProvider extends ChangeNotifier {
 
   Map<String, Map<String, dynamic>> _users = {};
 
-  // --- NUOVE VARIABILI PER LA GESTIONE DELLA SESSIONE DEI DRINK ---
-  // Memorizza la lista dei drink consumati nella serata corrente
+ 
   List<dynamic> currentSessionDrinks = [];
 
-  // Genera la chiave univoca per la persistenza della sessione corrente del singolo utente
+  
   String _sessionKeyForAccount(String id) => 'current_session_${Uri.encodeComponent(id)}';
 
   String _createAccountId() {
@@ -56,9 +53,7 @@ class UserProvider extends ChangeNotifier {
     return 'acc_${timestamp}_$nonce';
   }
 
-  // --- HASHING PASSWORD ---
-  // Non salviamo MAI la password in chiaro: salviamo un hash SHA-256 con un
-  // "sale" casuale per utente. Al login si confrontano gli hash, mai il testo.
+ 
   String _generateSalt() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
@@ -89,8 +84,7 @@ class UserProvider extends ChangeNotifier {
     String? birthDate,
   }) {
     final existing = _users[username] ?? <String, dynamic>{};
-    // Se arriva una nuova password (registrazione o cambio), la si hasha con un
-    // nuovo sale; altrimenti si mantengono l'hash e il sale già salvati.
+    
     String? passwordHash = existing['password'] as String?;
     String? salt = existing['salt'] as String?;
     if (password != null && password.isNotEmpty) {
@@ -124,7 +118,7 @@ class UserProvider extends ChangeNotifier {
       nomeContatto = null;
       telefonoContatto = null;
       livelloStress = 'normal';
-      currentSessionDrinks = []; // Pulisce lo stato dei drink se non c'è profilo
+      currentSessionDrinks = []; 
       return;
     }
 
@@ -152,10 +146,7 @@ class UserProvider extends ChangeNotifier {
       final legacyUsername = prefs.getString('username');
       final legacyPassword = prefs.getString('password');
       if (legacyUsername != null && legacyPassword != null) {
-        // Migrazione di un vecchio account con password in chiaro: la hashiamo
-        // subito con un sale nuovo, altrimenti authenticate() lo rifiuterebbe
-        // per sempre (nessun sale significa login impossibile). E cancelliamo
-        // la vecchia password in chiaro dal disco.
+        
         final legacySalt = _generateSalt();
         _users = {
           legacyUsername: {
@@ -180,7 +171,6 @@ class UserProvider extends ChangeNotifier {
     final currentUsername = prefs.getString(_currentUsernameKey);
     if (isUserLogged && currentUsername != null) {
       _applyProfile(currentUsername, _users[currentUsername]);
-      // CARICAMENTO AUTOMATICO: Recupera la sessione dei drink salvata per questo account
       await loadCurrentSessionIfAny();
     } else {
       _applyProfile(null, null);
@@ -189,12 +179,10 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
  
-  // True se esiste gia' un account con questo username: serve alla
-  // registrazione per non sovrascrivere un utente gia' presente.
+  
   bool usernameExists(String username) => _users.containsKey(username);
 
-  // True se il testo passato coincide con la password attuale dell'utente
-  // loggato. Confronto sugli hash, senza mai avere la password in chiaro.
+ 
   bool matchesCurrentPassword(String password) {
     if (username == null) return false;
     final user = _users[username!];
@@ -257,7 +245,7 @@ class UserProvider extends ChangeNotifier {
     final salt = user['salt'] as String?;
     final storedHash = user['password'] as String?;
     if (salt == null || storedHash == null) {
-      return false; // account in vecchio formato senza hash: va ricreato
+      return false; 
     }
     if (_hashPassword(password, salt) != storedHash) {
       return false;
@@ -269,18 +257,14 @@ class UserProvider extends ChangeNotifier {
     await prefs.setString(_currentUsernameKey, username);
     _applyProfile(username, user);
     
-    // Sincronizza i drink dell'utente appena loggato
+    
     await loadCurrentSessionIfAny();
     
     notifyListeners();
     return true;
   }
  
-  // getPassword rimosso: con l'hashing non esiste più una password in chiaro
-  // da restituire; il confronto avviene sugli hash dentro authenticate().
  
-  // Il vecchio metodo login() senza verifica delle credenziali e' stato
-  // rimosso: l'unico ingresso valido e' authenticate(), che controlla l'hash.
  
   Future<void> logout() async {
     isUserLogged = false;
@@ -298,8 +282,7 @@ class UserProvider extends ChangeNotifier {
     nomeContatto = nome;
     telefonoContatto = telefono;
 
-    // La fonte di verita' e' il profilo del singolo account: niente piu'
-    // chiavi globali condivise tra utenti diversi.
+    
     if (username != null) {
       final prefs = await SharedPreferences.getInstance();
       final profile = _users[username!];
@@ -316,8 +299,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> saveStressLevel(String level) async {
     livelloStress = level;
 
-    // Anche lo stress vive solo nel profilo dell'account, non in una chiave
-    // globale condivisa tra utenti diversi.
+    
     if (username != null) {
       final prefs = await SharedPreferences.getInstance();
       final profile = _users[username!];
@@ -330,9 +312,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- NUOVI METODI DI LOGICA CORE PER LA PERSISTENZA DEI DRINK ---
-
-  // 1. Carica la sessione corrente dal disco locale (se esiste)
+  
   Future<void> loadCurrentSessionIfAny() async {
     if (accountId == null || accountId!.isEmpty) {
       currentSessionDrinks = [];
@@ -351,7 +331,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 2. Aggiunge un drink e lo scrive immediatamente su SharedPreferences
+  
   Future<void> addDrinkToSession(dynamic drink) async {
     currentSessionDrinks.add(drink);
     notifyListeners();
@@ -363,7 +343,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // 3. Rimuove un drink specifico e aggiorna SharedPreferences (opzionale, utile per correzioni)
+ 
   Future<void> removeDrinkFromSession(int index) async {
     if (index >= 0 && index < currentSessionDrinks.length) {
       currentSessionDrinks.removeAt(index);
@@ -377,26 +357,21 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // 4. FUNZIONE CORE "END THE NIGHT": Cancella definitivamente la sessione offline su SharedPreferences
   Future<void> endTheNight() async {
     final prefs = await SharedPreferences.getInstance();
     
     if (accountId != null && accountId!.isNotEmpty) {
       final String key = _sessionKeyForAccount(accountId!);
-      await prefs.remove(key); // Distrugge la sessione sul disco fisso
+      await prefs.remove(key); 
     }
 
-    currentSessionDrinks = []; // Svuota l'array locale in RAM
-
-    // Il contatto di emergenza vive solo per la durata della serata: a fine
-    // sessione lo cancelliamo davvero, come promesso all'utente in pre-session.
+    currentSessionDrinks = []; 
     await _clearEmergencyContact(prefs);
 
     notifyListeners();
   }
 
-  // Cancella il contatto di emergenza dallo stato in RAM, dal profilo
-  // dell'account su disco e da eventuali vecchie chiavi globali residue.
+ 
   Future<void> _clearEmergencyContact(SharedPreferences prefs) async {
     nomeContatto = null;
     telefonoContatto = null;

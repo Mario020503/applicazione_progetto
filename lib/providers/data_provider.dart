@@ -8,20 +8,12 @@ import '../services/impact.dart';
 class DataProvider with ChangeNotifier {
   final ImpactService _impactService = ImpactService();
 
-  // DATI DIMOSTRATIVI / SIMULAZIONE.
-  // L'API del corso IMPACT espone un paziente demo fisso (Jpefaq6m58). Questa
-  // app NON legge il cuore dell'utente registrato: usa sempre i dati reali di
-  // quel paziente, come se fossero dell'utente. In pratica simuliamo: "se
-  // questa persona avesse bevuto in quel giorno, quale sarebbe stato il suo
-  // stress?". Le credenziali sono quelle fornite dal corso e restano nel
-  // sorgente: per un progetto universitario e' una scelta accettabile e nota.
+
   final String _myUsername = "v7oZIhQJoE";
   final String _myPassword = "12345678!";
   final String _lucaUsername = "Jpefaq6m58";
 
-  // Ci si autentica una sola volta: ottenuti i token, ImpactService rinnova da
-  // solo l'access scaduto col refresh, quindi non serve rifare il login a ogni
-  // scaricamento.
+  
   bool _isAuthorized = false;
 
   List<HeartRate> _heartRates = [];
@@ -38,11 +30,7 @@ class DataProvider with ChangeNotifier {
   static const String _baselineCacheKey = 'hrvBaseline';
   static const double baselineStressFactor = 0.85;
 
-  // SCELTA DA DEMO: la finestra della baseline e' fissa e coincide con
-  // l'intervallo in cui il paziente dimostrativo ha dati reali sul server. La
-  // baseline si calcola una volta su questi giorni e finisce in cache come
-  // singolo valore fisso, che non ricalcoliamo piu': per una simulazione e'
-  // proprio cio' che vogliamo, un riferimento stabile e riproducibile.
+ 
   static const String _baselineStart = '2026-06-04';
   static const String _baselineEnd = '2026-07-04';
 
@@ -63,8 +51,7 @@ class DataProvider with ChangeNotifier {
   List<HeartRate> get hrvPoints => _cachedHrvPoints;
   List<HeartRate> get stressPoints => _cachedStressPoints;
 
-  // Garantisce di essere autenticati almeno una volta. Le chiamate successive
-  // non rifanno il login: ci pensa il refresh del token dentro ImpactService.
+
   Future<bool> _ensureAuthorized() async {
     if (_isAuthorized) return true;
     _isAuthorized = await _impactService.login(_myUsername, _myPassword);
@@ -99,8 +86,9 @@ class DataProvider with ChangeNotifier {
             _restingHeartRates = [RestingHeartRate(date: DateTime.parse(day), value: _estimateRestingHr(_heartRates))];
           }
         } catch (_) {
-          // fallback silenzioso: se il resting non arriva, sotto subentra la stima
+
         }
+          
         
         if (_restingHeartRates.isEmpty) {
           _restingHeartRates = [RestingHeartRate(date: DateTime.parse(day), value: 65)];
@@ -118,12 +106,7 @@ class DataProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Stima un resting HR "di riserva" quando il server non ne fornisce uno
-  // reale per il giorno: prende il 5° percentile dei BPM registrati (i
-  // battiti più bassi tendono a verificarsi durante il riposo), con un
-  // margine di sicurezza 40-85. Funzione pura: dipende solo da `source`,
-  // così può essere riusata sia per il giorno mostrato in Home sia per
-  // ciascun giorno scandito nel calcolo della baseline.
+
   int _estimateRestingHr(List<HeartRate> source) {
     if (source.isEmpty) return 65;
     final sortedBpms = source.map((e) => e.value).toList()..sort();
@@ -131,16 +114,7 @@ class DataProvider with ChangeNotifier {
     return sortedBpms[percentileIndex].clamp(40, 85);
   }
 
-  // NOTA DI ONESTA': questo e' un PROXY dell'HRV, non l'RMSSD clinico. L'RMSSD
-  // vero si calcola sugli intervalli RR battito-battito; qui il server fornisce
-  // frequenza gia' mediata, che convertiamo in pseudo-intervalli RR.
-  //
-  // Funzione PURA: calcola i punti RMSSD a partire da `source` e `rhrBaseline`
-  // ricevuti come argomenti, senza mai leggere lo stato della classe
-  // (_heartRates/_restingHeartRates). Questo è ciò che permette di riusarla
-  // sia per il giorno corrente in Home sia per ogni singolo giorno scandito
-  // nel calcolo della baseline, ottenendo per ciascuno il proprio valore
-  // reale invece di ricadere sempre sul giorno caricato in Home.
+  
   List<HeartRate> _calculateRawRmssdPoints(List<HeartRate> source, int windowMinutes, int rhrBaseline) {
     if (source.isEmpty) return [];
 
@@ -208,9 +182,7 @@ class DataProvider with ChangeNotifier {
   }
 
   List<HeartRate> _aggregateData({required int windowMinutes}) {
-    // Battito di riposo stimato dai dati del giorno (come la baseline), non
-    // quello dell'endpoint: cosi' grafico, media e baseline usano lo stesso
-    // riferimento fisiologico.
+    
     List<HeartRate> basePoints = _calculateRawRmssdPoints(_heartRates, 5, _estimateRestingHr(_heartRates));
     if (basePoints.isEmpty) return [];
 
@@ -234,11 +206,8 @@ class DataProvider with ChangeNotifier {
     return results;
   }
 
-  // INDICE DI STRESS EURISTICO. Non e' un algoritmo Firstbeat/Garmin (quelli
-  // sono proprietari e validati): e' una stima costruita da noi, che combina lo
-  // scostamento dell'HRV dalla baseline con l'elevazione del battito sul riposo.
+
   List<HeartRate> _calculateStressTimeline({required int windowMinutes}) {
-    // Stesso riferimento di riposo stimato usato dal resto della pipeline.
     final int rhr = _estimateRestingHr(_heartRates);
     List<HeartRate> hrvBaselinePoints = _calculateRawRmssdPoints(_heartRates, windowMinutes, rhr);
     final b = _baseline;
@@ -254,27 +223,20 @@ class DataProvider with ChangeNotifier {
           ? (slotRecords.map((e) => e.value).reduce((a, b) => a + b) / slotRecords.length)
           : (rhr + 8).toDouble();
 
-      // Componente HRV: mappatura LINEARE a tratti (non logaritmica) del rapporto
-      // tra l'HRV del momento e la baseline personale. Le costanti sotto sono
-      // scelte da noi per una scala leggibile, non derivano da un modello validato.
+  
       double ratio = p.value / b;
       double hrvStressComponent;
 
       if (ratio < 1.0) {
-        // HRV sotto la baseline: lo stress sale linearmente (circa 25..90)
         hrvStressComponent = 25.0 + (1.0 - ratio) * 65.0;
       } else {
-        // HRV sopra la baseline: lo stress scende nella fascia di calma (5..25)
         hrvStressComponent = math.max(5.0, 25.0 - (ratio - 1.0) * 20.0);
       }
 
-      // Contributo del battito: quanto la frequenza del momento supera il riposo,
-      // normalizzato su una finestra di 45 bpm e pesato fino a 25 punti. Anche
-      // questo e' un termine euristico, non una misura fisiologica.
       double bpmElevation = math.max(0.0, currentBpm - rhr);
       double sympatheticBpmBoost = (bpmElevation / 45.0).clamp(0.0, 1.0) * 25.0;
 
-      // Somma dei due contributi, poi limitata nella scala 5..98.
+      
       double finalStressScore = hrvStressComponent + sympatheticBpmBoost;
 
       return HeartRate(
@@ -284,16 +246,9 @@ class DataProvider with ChangeNotifier {
     }).toList();
   }
 
-  // HRV media del giorno mostrato. USA LA STESSA identica pipeline della
-  // baseline (_avgHrvOf): stessa finestra a 5 minuti e stesso battito di riposo
-  // stimato dai dati. Cosi' il confronto con la baseline in stressForSelectedDay
-  // e' tra grandezze omogenee, non tra due cose calcolate in modi diversi.
   double get calculateHRV => _avgHrvOf(_heartRates);
 
-  // Media HRV di UN giorno specifico, calcolata sui suoi stessi dati
-  // (`source`), non su quelli eventualmente caricati in Home. Usata nel
-  // loop di computeBaselineIfNeeded per ottenere una media reale su più
-  // giorni, invece di ripetere N volte lo stesso valore.
+  
   double _avgHrvOf(List<HeartRate> source) {
     if (source.isEmpty) return 0.0;
     final rhrEstimate = _estimateRestingHr(source);
@@ -316,8 +271,7 @@ class DataProvider with ChangeNotifier {
     if (cached != null) {
       _baseline = cached;
       _baselineDaysUsed = prefs.getInt(_baselineCacheKeyDays) ?? 0;
-      // Baseline pronta: ricalcoliamo lo stress del giorno mostrato, cosi' il
-      // grafico si popola da solo senza aspettare un refresh manuale.
+
       if (_heartRates.isNotEmpty) {
         _cachedStressPoints = _calculateStressTimeline(windowMinutes: 15);
       }
@@ -359,7 +313,7 @@ class DataProvider with ChangeNotifier {
       await prefs.setDouble(_baselineCacheKey, _baseline!);
       await prefs.setInt(_baselineCacheKeyDays, _baselineDaysUsed);
     }
-    // Baseline pronta: ricalcoliamo lo stress del giorno mostrato.
+
     if (_baseline != null && _heartRates.isNotEmpty) {
       _cachedStressPoints = _calculateStressTimeline(windowMinutes: 15);
     }
