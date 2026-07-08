@@ -250,7 +250,7 @@ class _CalendarPageState extends State<CalendarPage> {
     Color borderColor;
     double borderWidth;
     if (isSelected) {
-      borderColor = Colors.blue;
+      borderColor = const Color(0xFF0E9C94);
       borderWidth = 3;
     } else if (isToday) {
       borderColor = Colors.black;
