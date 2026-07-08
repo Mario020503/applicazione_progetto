@@ -88,20 +88,24 @@ class _AppEntryState extends State<AppEntry> {
   }
  
   Future<void> _init() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
-    
-    // 1. Carica lo stato dell'utente salvato localmente
-    await userProvider.loadFromSharedPreferences();
-    
-    // 2. MODIFICA DI SICUREZZA: Se c'è un utente loggato, carica il suo specifico accountId
-    if (userProvider.accountId != null && userProvider.accountId!.isNotEmpty) {
-      await storicoProvider.loadForAccount(userProvider.accountId);
-    } else {
-      // Se non c'è nessuno, assicurati che la RAM sia pulita e pronta
-      await storicoProvider.clear();
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final storicoProvider = Provider.of<StoricoProvider>(context, listen: false);
+
+      // 1. Carica lo stato dell'utente salvato localmente
+      await userProvider.loadFromSharedPreferences();
+
+      // 2. Se c'è un utente loggato, carica il suo storico; altrimenti pulisci
+      if (userProvider.accountId != null && userProvider.accountId!.isNotEmpty) {
+        await storicoProvider.loadForAccount(userProvider.accountId);
+      } else {
+        await storicoProvider.clear();
+      }
+    } catch (_) {
+      // Se il caricamento dello stato salvato fallisce (per esempio per dati
+      // corrotti sul disco), non blocchiamo l'avvio: proseguiamo alla splash.
     }
-    
+
     if (!mounted) return;
     setState(() => _loading = false);
   }
